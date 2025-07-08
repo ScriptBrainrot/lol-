@@ -1,12 +1,12 @@
 --[[
-  Steal a Brainrot - Marche dans le ciel
-  - Bouton SKY : Crée un sol invisible à 50m de haut
-  - Bouton DOWN : Téléporte directement sous toi
-  - Déplacement libre en l'air
+  Steal a Brainrot ULTIMATE
+  - Sol invisible géant en l'air
+  - Téléportation stable
+  - Hauteur réglable
 --]]
 
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
@@ -14,11 +14,29 @@ local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
-local FLY_HEIGHT = 50 -- Hauteur du "sol" aérien
+local FLY_HEIGHT = 100 -- Hauteur du sol aérien (augmentée à 100m)
 local isFlying = false
 local AirPlatform = nil
 
--- Interface minimaliste
+-- Crée un sol géant invisible
+local function CreateSkyPlatform()
+    if AirPlatform then AirPlatform:Destroy() end
+    
+    AirPlatform = Instance.new("Part")
+    AirPlatform.Name = "BrainrotSkyPlatform"
+    AirPlatform.Size = Vector3.new(10000, 2, 10000) -- Couvre toute la map
+    AirPlatform.Position = Vector3.new(0, FLY_HEIGHT, 0)
+    AirPlatform.Anchored = true
+    AirPlatform.Transparency = 1
+    AirPlatform.CanCollide = true
+    AirPlatform.Parent = Workspace
+    
+    -- Téléporte le joueur dessus
+    local currentXZ = Vector3.new(RootPart.Position.X, 0, RootPart.Position.Z)
+    RootPart.CFrame = CFrame.new(currentXZ + Vector3.new(0, FLY_HEIGHT + 3, 0))
+end
+
+-- Interface simplifiée
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
@@ -28,7 +46,6 @@ MainFrame.Size = UDim2.new(0, 120, 0, 80)
 MainFrame.Position = UDim2.new(0.8, -60, 0.7, -40)
 MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 MainFrame.BackgroundTransparency = 0.3
-MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
 local SkyBtn = Instance.new("TextButton")
@@ -47,62 +64,42 @@ DownBtn.TextColor3 = Color3.new(1, 1, 1)
 DownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 DownBtn.Parent = MainFrame
 
-local function CreateAirPlatform()
-    -- Supprime l'ancienne plateforme si elle existe
-    if AirPlatform then AirPlatform:Destroy() end
-    
-    -- Crée un sol invisible
-    AirPlatform = Instance.new("Part")
-    AirPlatform.Name = "AirPlatform"
-    AirPlatform.Size = Vector3.new(100, 2, 100)
-    AirPlatform.Position = RootPart.Position + Vector3.new(0, -3, 0)
-    AirPlatform.Transparency = 1
-    AirPlatform.Anchored = true
-    AirPlatform.CanCollide = true
-    AirPlatform.Parent = workspace
-    
-    -- Téléporte le joueur dessus
-    RootPart.CFrame = AirPlatform.CFrame + Vector3.new(0, 3, 0)
-end
-
+-- Système de téléportation
 local function GoToSky()
     if isFlying then return end
     isFlying = true
     
-    CreateAirPlatform()
+    CreateSkyPlatform()
     Humanoid:ChangeState(Enum.HumanoidStateType.Running)
 end
 
 local function GoDown()
     if not isFlying then return end
-    isFlying = false
     
-    -- Trouve le sol sous le joueur
+    -- Téléporte au sol sous ta position actuelle
+    local rayOrigin = Vector3.new(RootPart.Position.X, FLY_HEIGHT - 2, RootPart.Position.Z)
     local rayParams = RaycastParams.new()
     rayParams.FilterDescendantsInstances = {Character, AirPlatform}
-    local rayResult = workspace:Raycast(
-        Vector3.new(RootPart.Position.X, AirPlatform.Position.Y-50, RootPart.Position.Z),
-        Vector3.new(0, -1000, 0),
-        rayParams
-    )
     
+    local rayResult = Workspace:Raycast(rayOrigin, Vector3.new(0, -1000, 0), rayParams)
     if rayResult then
         RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
     end
     
     if AirPlatform then AirPlatform:Destroy() end
+    isFlying = false
 end
 
--- Connexion des boutons
+-- Connexions
 SkyBtn.MouseButton1Click:Connect(GoToSky)
 DownBtn.MouseButton1Click:Connect(GoDown)
 
 -- Nettoyage
 Character:GetPropertyChangedSignal("Parent"):Connect(function()
-    if not Character.Parent then
-        if AirPlatform then AirPlatform:Destroy() end
+    if not Character.Parent and AirPlatform then
+        AirPlatform:Destroy()
         ScreenGui:Destroy()
     end
 end)
 
-print("✅ Steal a Brainrot - Mode 'Marche dans le ciel' activé!")
+print("✅ Mode 'Skywalk' activé - Hauteur: "..FLY_HEIGHT.."m")
