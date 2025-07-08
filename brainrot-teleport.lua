@@ -1,11 +1,10 @@
 --[[
-  Infinity Hub - Ultimate Edition
-  • Infinite Jump Fixé • ESP Bleu • Interface Compacte
+  Infinity Hub - ESP Edition
+  • Interface minimaliste • ESP Pro • Skywalk
 --]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local Player = Players.LocalPlayer
@@ -16,21 +15,20 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 -- Configuration
 local FLY_HEIGHT = 100
 local isFlying = false
-local infiniteJump = false
 local espEnabled = false
 local AirPlatform = nil
 local ESPFolder = Instance.new("Folder")
 ESPFolder.Name = "ESP_Items"
 ESPFolder.Parent = game.CoreGui
 
--- UI Compacte (150x180)
+-- UI Minimaliste
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "InfinityHubUltimate"
+ScreenGui.Name = "InfinityHubESP"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 150, 0, 180)
+MainFrame.Size = UDim2.new(0, 150, 0, 120) -- Plus compact
 MainFrame.Position = UDim2.new(0.5, -75, 0.05, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 MainFrame.BackgroundTransparency = 0
@@ -41,7 +39,7 @@ MainFrame.Parent = ScreenGui
 local Title = Instance.new("TextLabel")
 Title.Text = "INFINITY HUB"
 Title.Size = UDim2.new(0, 130, 0, 20)
-Title.Position = UDim2.new(0.1, 0, 0.02, 0)
+Title.Position = UDim2.new(0.1, 0, 0.05, 0)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -49,7 +47,7 @@ Title.BackgroundTransparency = 1
 Title.Parent = MainFrame
 
 -- Boutons
-local function CreateMiniButton(name, yPos, color)
+local function CreateButton(name, yPos, color)
     local button = Instance.new("TextButton")
     button.Name = name
     button.Size = UDim2.new(0, 130, 0, 25)
@@ -68,27 +66,11 @@ local function CreateMiniButton(name, yPos, color)
     return button
 end
 
-local SkyBtn = CreateMiniButton("SKY", 0.15, Color3.fromRGB(0, 100, 255))
-local DownBtn = CreateMiniButton("DOWN", 0.3, Color3.fromRGB(255, 50, 50))
-local JumpBtn = CreateMiniButton("INF JUMP", 0.45, Color3.fromRGB(255, 150, 0))
-local ESPBtn = CreateMiniButton("ESP", 0.6, Color3.fromRGB(0, 200, 100))
-local BaseBtn = CreateMiniButton("BASE", 0.75, Color3.fromRGB(100, 100, 255))
+local SkyBtn = CreateButton("SKY", 0.2, Color3.fromRGB(0, 100, 255))
+local DownBtn = CreateButton("DOWN", 0.45, Color3.fromRGB(255, 50, 50))
+local ESPBtn = CreateButton("ESP", 0.7, Color3.fromRGB(0, 200, 100))
 
--- Infinite Jump CORRIGÉ
-local function ToggleInfiniteJump()
-    infiniteJump = not infiniteJump
-    JumpBtn.Text = infiniteJump and "INF JUMP (ON)" or "INF JUMP"
-end
-
-UIS.InputBegan:Connect(function(input, gameProcessed)
-    if infiniteJump and input.KeyCode == Enum.KeyCode.Space then
-        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        task.wait(0.1) -- Délai entre les sauts
-        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
-
--- ESP CORRIGÉ (texte bleu)
+-- ESP Professionnel (comme sur l'image)
 local function UpdateESP()
     ESPFolder:ClearAllChildren()
     
@@ -100,29 +82,43 @@ local function UpdateESP()
             local head = char:FindFirstChild("Head")
             
             if head then
-                local espText = Instance.new("TextLabel")
-                espText.Name = player.Name.."_ESP"
-                espText.Text = player.Name
-                espText.Size = UDim2.new(0, 200, 0, 50) -- Taille augmentée
-                espText.TextSize = 18 -- Texte plus gros
-                espText.TextColor3 = Color3.new(0, 0.5, 1) -- Bleu vif
-                espText.TextStrokeColor3 = Color3.new(0, 0, 0)
-                espText.TextStrokeTransparency = 0.3
-                espText.BackgroundTransparency = 1
-                espText.Parent = ESPFolder
+                -- Cadre texte (style image)
+                local espFrame = Instance.new("Frame")
+                espFrame.Name = player.Name.."_ESP"
+                espFrame.Size = UDim2.new(0, 160, 0, 40)
+                espFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                espFrame.BackgroundTransparency = 0.4
+                espFrame.BorderSizePixel = 0
                 
+                local UICorner = Instance.new("UICorner")
+                UICorner.CornerRadius = UDim.new(0, 6)
+                UICorner.Parent = espFrame
+                
+                -- Texte pseudo
+                local espText = Instance.new("TextLabel")
+                espText.Text = player.Name
+                espText.Size = UDim2.new(1, 0, 1, 0)
+                espText.TextColor3 = Color3.fromRGB(100, 150, 255) -- Bleu clair
+                espText.TextSize = 14
+                espText.Font = Enum.Font.GothamMedium
+                espText.BackgroundTransparency = 1
+                espText.Parent = espFrame
+                
+                espFrame.Parent = ESPFolder
+                
+                -- Mise à jour position
                 RunService.Heartbeat:Connect(function()
                     if not char or not char.Parent then
-                        espText:Destroy()
+                        espFrame:Destroy()
                         return
                     end
                     
                     local headPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(head.Position)
                     if onScreen then
-                        espText.Position = UDim2.new(0, headPos.X - 100, 0, headPos.Y - 50)
-                        espText.Visible = true
+                        espFrame.Position = UDim2.new(0, headPos.X - 80, 0, headPos.Y - 50)
+                        espFrame.Visible = true
                     else
-                        espText.Visible = false
+                        espFrame.Visible = false
                     end
                 end)
             end
@@ -136,7 +132,7 @@ local function ToggleESP()
     UpdateESP()
 end
 
--- Téléportations (inchangé)
+-- Téléportation Sky/Down
 local function GoToSky()
     if isFlying then return end
     
@@ -177,17 +173,10 @@ local function GoDown()
     isFlying = false
 end
 
-local function GoToBase()
-    local basePos = Vector3.new(0, 0, 0) -- À remplacer
-    RootPart.CFrame = CFrame.new(basePos + Vector3.new(0, 3, 0))
-end
-
 -- Connexions
 SkyBtn.MouseButton1Click:Connect(GoToSky)
 DownBtn.MouseButton1Click:Connect(GoDown)
-JumpBtn.MouseButton1Click:Connect(ToggleInfiniteJump)
 ESPBtn.MouseButton1Click:Connect(ToggleESP)
-BaseBtn.MouseButton1Click:Connect(GoToBase)
 
 -- Nettoyage
 Character:GetPropertyChangedSignal("Parent"):Connect(function()
@@ -197,4 +186,8 @@ Character:GetPropertyChangedSignal("Parent"):Connect(function()
     end
 end)
 
-print("✅ INFINITY HUB ULTIMATE PRÊT")
+-- Mise à jour ESP quand un joueur rejoint/quitte
+Players.PlayerAdded:Connect(UpdateESP)
+Players.PlayerRemoving:Connect(UpdateESP)
+
+print("✅ INFINITY HUB ESP ACTIVÉ")
