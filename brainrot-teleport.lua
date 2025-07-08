@@ -1,67 +1,91 @@
 --[[
-  STEAL BRAINROT - AJJAN GUI EDITION
-  Boutons "Start" et "Down" identiques à tes screenshots
-  100% fonctionnel avec Delta Executor
+  Steal a Brainrot - Téléportation Aérienne
+  Interface personnalisée avec boutons "Sky" (bleu) et "Down" (rouge)
+  Compatible Delta/Krnl/Synapse
 --]]
 
-local Player = game:GetService("Players").LocalPlayer
+-- Services
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Joueur et Character
+local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
-local RunService = game:GetService("RunService")
 
--- Configuration du vol
+-- Configuration
 local FLY_HEIGHT = 50
+local MOVE_SPEED = 50
 local isFlying = false
 
--- Création de la GUI AJJAN exacte
+-- Création de l'interface (style Arbix Hub modifié)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AjjanGUI"
-ScreenGui.Parent = game:GetService("CoreGui") -- Garantit l'affichage
+ScreenGui.Name = "BrainrotGUI"
+ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 110, 0, 80)
-MainFrame.Position = UDim2.new(0.5, -55, 0.7, -40) -- Position centrale basse
-MainFrame.BackgroundTransparency = 1 -- Fond invisible
+MainFrame.Size = UDim2.new(0, 200, 0, 150)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Fond noir
+MainFrame.BackgroundTransparency = 0.2
+MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
--- Bouton START (identique à ton screenshot)
-local StartBtn = Instance.new("TextButton")
-StartBtn.Name = "Start"
-StartBtn.Size = UDim2.new(0, 100, 0, 30)
-StartBtn.Position = UDim2.new(0, 5, 0, 5)
-StartBtn.Text = "Start"
-StartBtn.TextColor3 = Color3.new(1, 1, 1)
-StartBtn.Font = Enum.Font.SourceSansBold
-StartBtn.TextSize = 14
-StartBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-StartBtn.BorderSizePixel = 0
-StartBtn.Parent = MainFrame
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 180, 0, 30)
+Title.Position = UDim2.new(0.1, 0, 0.05, 0)
+Title.Text = "Steal a Brainrot"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
 
--- Bouton DOWN (identique à ton screenshot)
+local SkyBtn = Instance.new("TextButton")
+SkyBtn.Size = UDim2.new(0, 180, 0, 50)
+SkyBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+SkyBtn.Text = "SKY"
+SkyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SkyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255) -- Bleu
+SkyBtn.Parent = MainFrame
+
 local DownBtn = Instance.new("TextButton")
-DownBtn.Name = "Down"
-DownBtn.Size = UDim2.new(0, 100, 0, 30)
-DownBtn.Position = UDim2.new(0, 5, 0, 45)
-DownBtn.Text = "Down"
-DownBtn.TextColor3 = Color3.new(1, 1, 1)
-DownBtn.Font = Enum.Font.SourceSansBold
-DownBtn.TextSize = 14
-DownBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-DownBtn.BorderSizePixel = 0
+DownBtn.Size = UDim2.new(0, 180, 0, 50)
+DownBtn.Position = UDim2.new(0.1, 0, 0.7, 0)
+DownBtn.Text = "DOWN"
+DownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- Rouge
 DownBtn.Parent = MainFrame
 
--- Fonction de téléportation
+-- Fonction de téléportation aérienne
 local function ToggleFlight()
     isFlying = not isFlying
     
     if isFlying then
-        -- Monte en l'air
+        -- Monter en l'air
         RootPart.CFrame = RootPart.CFrame + Vector3.new(0, FLY_HEIGHT, 0)
         Humanoid:ChangeState(Enum.HumanoidStateType.Flying)
+        
+        -- Contrôles de mouvement
+        local conn
+        conn = RunService.Heartbeat:Connect(function()
+            if not isFlying then 
+                conn:Disconnect() 
+                return 
+            end
+            
+            local moveDir = Vector3.new()
+            if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir += RootPart.CFrame.LookVector * -1 end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir += RootPart.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir += RootPart.CFrame.RightVector * -1 end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir += RootPart.CFrame.RightVector end
+            
+            RootPart.Velocity = moveDir * MOVE_SPEED
+        end)
     else
-        -- Descend au sol
+        -- Descendre au sol
         local raycastParams = RaycastParams.new()
         raycastParams.FilterDescendantsInstances = {Character}
         local raycastResult = workspace:Raycast(RootPart.Position, Vector3.new(0, -1000, 0), raycastParams)
@@ -69,24 +93,21 @@ local function ToggleFlight()
         if raycastResult then
             RootPart.CFrame = CFrame.new(raycastResult.Position + Vector3.new(0, 3, 0))
         end
+        RootPart.Velocity = Vector3.new()
         Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
     end
 end
 
 -- Connexion des boutons
-StartBtn.MouseButton1Click:Connect(function()
-    if not isFlying then ToggleFlight() end
+SkyBtn.MouseButton1Click:Connect(ToggleFlight)
+DownBtn.MouseButton1Click:Connect(ToggleFlight)
+
+-- Nettoyage si le joueur meurt
+Character:GetPropertyChangedSignal("Parent"):Connect(function()
+    if not Character.Parent then
+        isFlying = false
+        ScreenGui:Destroy()
+    end
 end)
 
-DownBtn.MouseButton1Click:Connect(function()
-    if isFlying then ToggleFlight() end
-end)
-
--- Notification de confirmation
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "AJJAN GUI",
-    Text = "Script activé !",
-    Duration = 3
-})
-
-print("✅ Interface Ajjan chargée | Parent: "..ScreenGui.Parent.Name)
+print("✅ Steal a Brainrot activé !")
