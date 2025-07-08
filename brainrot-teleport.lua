@@ -1,12 +1,10 @@
 --[[
-  Infinity Hub - Téléportation Aérienne
-  Design: Fond noir opaque + Titre "Infinity | Hub"
-  Boutons: SKY (bleu) / DOWN (rouge) / DISCORD (violet)
+  Infinity Hub - Design Premium
+  Boutons ovalisés • Cadre noir parfait • Effets lisses
 --]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local TextService = game:GetService("TextService")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
@@ -18,12 +16,10 @@ local FLY_HEIGHT = 150
 local isFlying = false
 local AirPlatform = nil
 
--- Création du sol permanent
+-- Création du sol
 local function CreateSkyPlatform()
     if AirPlatform then return end
-    
     AirPlatform = Instance.new("Part")
-    AirPlatform.Name = "InfinitySkyPlatform"
     AirPlatform.Size = Vector3.new(10000, 5, 10000)
     AirPlatform.Position = Vector3.new(0, FLY_HEIGHT, 0)
     AirPlatform.Anchored = true
@@ -32,87 +28,86 @@ local function CreateSkyPlatform()
     AirPlatform.Parent = Workspace
 end
 
--- Interface style "Infinity Hub"
+-- UI Premium
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "InfinityHubGUI"
+ScreenGui.Name = "InfinityHubPremium"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 220, 0, 180)
-MainFrame.Position = UDim2.new(0.5, -110, 0.05, 0) -- Haut de l'écran
-MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Noir opaque
+MainFrame.Size = UDim2.new(0, 220, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -110, 0.05, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 MainFrame.BackgroundTransparency = 0
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
--- Titre "Infinity | Hub" (effet feutre)
+-- Titre
 local Title = Instance.new("TextLabel")
+Title.Text = "Infinity | Hub"
 Title.Size = UDim2.new(0, 200, 0, 30)
 Title.Position = UDim2.new(0.1, 0, 0.05, 0)
-Title.Text = "Infinity | Hub"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 18
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.BackgroundTransparency = 1
 Title.Parent = MainFrame
 
--- Bouton SKY (bleu vif)
-local SkyBtn = Instance.new("TextButton")
-SkyBtn.Size = UDim2.new(0, 200, 0, 40)
-SkyBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
-SkyBtn.Text = "SKY"
-SkyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SkyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-SkyBtn.Parent = MainFrame
+-- Fonction pour créer des boutons ovalisés
+local function CreateRoundedButton(name, yPos, color)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0, 180, 0, 35) -- Plus compact
+    button.Position = UDim2.new(0.1, 0, yPos, 0)
+    button.Text = name
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.BackgroundColor3 = color
+    button.Font = Enum.Font.GothamMedium
+    
+    -- Effet ovalisé
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 12) -- Arrondi prononcé
+    UICorner.Parent = button
+    
+    -- Effet hover
+    button.MouseEnter:Connect(function()
+        button.BackgroundTransparency = 0.2
+    end)
+    button.MouseLeave:Connect(function()
+        button.BackgroundTransparency = 0
+    end)
+    
+    button.Parent = MainFrame
+    return button
+end
 
--- Bouton DOWN (rouge)
-local DownBtn = Instance.new("TextButton")
-DownBtn.Size = UDim2.new(0, 200, 0, 40)
-DownBtn.Position = UDim2.new(0.1, 0, 0.55, 0)
-DownBtn.Text = "DOWN"
-DownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-DownBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-DownBtn.Parent = MainFrame
+-- Boutons premium
+local SkyBtn = CreateRoundedButton("SKY", 0.3, Color3.fromRGB(0, 120, 255))
+local DownBtn = CreateRoundedButton("DOWN", 0.55, Color3.fromRGB(255, 60, 60))
+local DiscordBtn = CreateRoundedButton("DISCORD", 0.8, Color3.fromRGB(114, 137, 218))
 
--- Bouton DISCORD (violet)
-local DiscordBtn = Instance.new("TextButton")
-DiscordBtn.Size = UDim2.new(0, 200, 0, 30)
-DiscordBtn.Position = UDim2.new(0.1, 0, 0.8, 0)
-DiscordBtn.Text = "JOIN DISCORD"
-DiscordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-DiscordBtn.BackgroundColor3 = Color3.fromRGB(114, 137, 218) -- Couleur Discord
-DiscordBtn.Parent = MainFrame
-
--- Fonctions de téléportation
+-- Fonctions
 local function GoToSky()
     if isFlying then return end
-    
     CreateSkyPlatform()
     isFlying = true
-    
-    local currentPos = RootPart.Position
-    RootPart.CFrame = CFrame.new(currentPos.X, FLY_HEIGHT + 3, currentPos.Z)
-    Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+    RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 3, RootPart.Position.Z)
 end
 
 local function GoDown()
     if not isFlying then return end
-    
-    local rayOrigin = Vector3.new(RootPart.Position.X, FLY_HEIGHT - 2, RootPart.Position.Z)
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {Character}
-    
-    local rayResult = Workspace:Raycast(rayOrigin, Vector3.new(0, -1000, 0), rayParams)
+    local rayResult = workspace:Raycast(
+        Vector3.new(RootPart.Position.X, FLY_HEIGHT-2, RootPart.Position.Z),
+        Vector3.new(0, -1000, 0),
+        RaycastParams.new()
+    )
     if rayResult then
         RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
     end
-    
     isFlying = false
 end
 
--- Copie le lien Discord quand on clique
-local function CopyDiscordLink()
+local function CopyDiscord()
     setclipboard("https://discord.gg/ZVX8GNMNaD")
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Infinity Hub",
@@ -121,9 +116,9 @@ local function CopyDiscordLink()
     })
 end
 
--- Connexions boutons
+-- Connexions
 SkyBtn.MouseButton1Click:Connect(GoToSky)
 DownBtn.MouseButton1Click:Connect(GoDown)
-DiscordBtn.MouseButton1Click:Connect(CopyDiscordLink)
+DiscordBtn.MouseButton1Click:Connect(CopyDiscord)
 
-print("✅ Infinity Hub - Prêt à décoller !")
+print("✅ Infinity Hub Premium - Design ovalisé activé")
