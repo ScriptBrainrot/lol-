@@ -1,8 +1,8 @@
 --[[
-  Steal a Brainrot ULTIMATE
-  - Sol invisible géant en l'air
-  - Téléportation stable
-  - Hauteur réglable
+  Steal a Brainrot - Mode Skywalk Illimité
+  - Sol invisible géant et permanent
+  - Pas de retour automatique au sol
+  - Descente MANUALE uniquement via le bouton DOWN
 --]]
 
 local Players = game:GetService("Players")
@@ -14,29 +14,29 @@ local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
-local FLY_HEIGHT = 100 -- Hauteur du sol aérien (augmentée à 100m)
+local FLY_HEIGHT = 150 -- Hauteur augmentée à 150m
 local isFlying = false
 local AirPlatform = nil
 
--- Crée un sol géant invisible
+-- Crée un sol géant INDESTRUCTIBLE
 local function CreateSkyPlatform()
-    if AirPlatform then AirPlatform:Destroy() end
+    if AirPlatform then return end -- Ne pas recréer si existe déjà
     
     AirPlatform = Instance.new("Part")
-    AirPlatform.Name = "BrainrotSkyPlatform"
-    AirPlatform.Size = Vector3.new(10000, 2, 10000) -- Couvre toute la map
+    AirPlatform.Name = "PermanentSkyPlatform"
+    AirPlatform.Size = Vector3.new(10000, 5, 10000) -- Épaisseur augmentée à 5
     AirPlatform.Position = Vector3.new(0, FLY_HEIGHT, 0)
     AirPlatform.Anchored = true
     AirPlatform.Transparency = 1
     AirPlatform.CanCollide = true
+    AirPlatform.CollisionGroup = "SkyPlatform" -- Groupe de collision perso
     AirPlatform.Parent = Workspace
     
-    -- Téléporte le joueur dessus
-    local currentXZ = Vector3.new(RootPart.Position.X, 0, RootPart.Position.Z)
-    RootPart.CFrame = CFrame.new(currentXZ + Vector3.new(0, FLY_HEIGHT + 3, 0))
+    -- Force le sol à rester même si le joueur meurt
+    AirPlatform:SetAttribute("Permanent", true)
 end
 
--- Interface simplifiée
+-- Interface
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
@@ -64,42 +64,55 @@ DownBtn.TextColor3 = Color3.new(1, 1, 1)
 DownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 DownBtn.Parent = MainFrame
 
--- Système de téléportation
+-- Téléportation en l'air
 local function GoToSky()
     if isFlying then return end
-    isFlying = true
     
     CreateSkyPlatform()
+    isFlying = true
+    
+    -- Téléporte en conservant la position X/Z
+    local currentPos = RootPart.Position
+    RootPart.CFrame = CFrame.new(
+        currentPos.X, 
+        FLY_HEIGHT + 3, -- +3 pour être au-dessus du sol
+        currentPos.Z
+    )
+    
     Humanoid:ChangeState(Enum.HumanoidStateType.Running)
 end
 
+-- Descente manuelle
 local function GoDown()
     if not isFlying then return end
     
-    -- Téléporte au sol sous ta position actuelle
-    local rayOrigin = Vector3.new(RootPart.Position.X, FLY_HEIGHT - 2, RootPart.Position.Z)
+    local rayOrigin = Vector3.new(
+        RootPart.Position.X,
+        FLY_HEIGHT - 2,
+        RootPart.Position.Z
+    )
+    
     local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {Character, AirPlatform}
+    rayParams.FilterDescendantsInstances = {Character}
+    rayParams.CollisionGroup = "Default" -- Ignore le sol aérien
     
     local rayResult = Workspace:Raycast(rayOrigin, Vector3.new(0, -1000, 0), rayParams)
     if rayResult then
         RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
     end
     
-    if AirPlatform then AirPlatform:Destroy() end
     isFlying = false
 end
 
--- Connexions
+-- Connexions boutons
 SkyBtn.MouseButton1Click:Connect(GoToSky)
 DownBtn.MouseButton1Click:Connect(GoDown)
 
--- Nettoyage
-Character:GetPropertyChangedSignal("Parent"):Connect(function()
-    if not Character.Parent and AirPlatform then
-        AirPlatform:Destroy()
-        ScreenGui:Destroy()
+-- Anti-reset
+workspace.ChildAdded:Connect(function(child)
+    if child.Name == "PermanentSkyPlatform" then
+        child:SetAttribute("Permanent", true)
     end
 end)
 
-print("✅ Mode 'Skywalk' activé - Hauteur: "..FLY_HEIGHT.."m")
+print("✅ Mode Skywalk PERMANENT activé !")
