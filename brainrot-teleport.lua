@@ -1,15 +1,13 @@
 --[[
-  Steal a Brainrot - Téléportation Aérienne
-  Interface personnalisée avec boutons "Sky" (bleu) et "Down" (rouge)
-  Compatible Delta/Krnl/Synapse
+  Steal a Brainrot - Version Optimisée
+  Interface compacte + Mouvement fixé
 --]]
 
--- Services
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
--- Joueur et Character
+-- Joueur
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
@@ -17,97 +15,93 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
 local FLY_HEIGHT = 50
-local MOVE_SPEED = 50
+local MOVE_SPEED = 100 -- Augmenté pour plus de réactivité
 local isFlying = false
+local flyConn
 
--- Création de l'interface (style Arbix Hub modifié)
+-- Interface compacte
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "BrainrotGUI"
-ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 200, 0, 150)
-MainFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Fond noir
-MainFrame.BackgroundTransparency = 0.2
+MainFrame.Size = UDim2.new(0, 150, 0, 100) -- Taille réduite
+MainFrame.Position = UDim2.new(0.8, -75, 0.7, -50) -- Position en bas à droite
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainFrame.BackgroundTransparency = 0.3
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 180, 0, 30)
-Title.Position = UDim2.new(0.1, 0, 0.05, 0)
-Title.Text = "Steal a Brainrot"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.GothamBold
-Title.Parent = MainFrame
-
 local SkyBtn = Instance.new("TextButton")
-SkyBtn.Size = UDim2.new(0, 180, 0, 50)
-SkyBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+SkyBtn.Size = UDim2.new(0, 130, 0, 40)
+SkyBtn.Position = UDim2.new(0.1, 0, 0.1, 0)
 SkyBtn.Text = "SKY"
-SkyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-SkyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255) -- Bleu
+SkyBtn.TextColor3 = Color3.new(1, 1, 1)
+SkyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
 SkyBtn.Parent = MainFrame
 
 local DownBtn = Instance.new("TextButton")
-DownBtn.Size = UDim2.new(0, 180, 0, 50)
-DownBtn.Position = UDim2.new(0.1, 0, 0.7, 0)
+DownBtn.Size = UDim2.new(0, 130, 0, 40)
+DownBtn.Position = UDim2.new(0.1, 0, 0.55, 0)
 DownBtn.Text = "DOWN"
-DownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-DownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- Rouge
+DownBtn.TextColor3 = Color3.new(1, 1, 1)
+DownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 DownBtn.Parent = MainFrame
 
--- Fonction de téléportation aérienne
-local function ToggleFlight()
-    isFlying = not isFlying
+-- Système de vol optimisé
+local function StartFlying()
+    if isFlying then return end
+    isFlying = true
     
-    if isFlying then
-        -- Monter en l'air
-        RootPart.CFrame = RootPart.CFrame + Vector3.new(0, FLY_HEIGHT, 0)
-        Humanoid:ChangeState(Enum.HumanoidStateType.Flying)
+    -- Téléportation initiale
+    RootPart.CFrame = RootPart.CFrame + Vector3.new(0, FLY_HEIGHT, 0)
+    Humanoid:ChangeState(Enum.HumanoidStateType.Flying)
+    
+    -- Mouvement fluide
+    flyConn = RunService.Heartbeat:Connect(function()
+        if not isFlying then return end
         
-        -- Contrôles de mouvement
-        local conn
-        conn = RunService.Heartbeat:Connect(function()
-            if not isFlying then 
-                conn:Disconnect() 
-                return 
-            end
-            
-            local moveDir = Vector3.new()
-            if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir += RootPart.CFrame.LookVector * -1 end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir += RootPart.CFrame.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir += RootPart.CFrame.RightVector * -1 end
-            if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir += RootPart.CFrame.RightVector end
-            
-            RootPart.Velocity = moveDir * MOVE_SPEED
-        end)
-    else
-        -- Descendre au sol
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterDescendantsInstances = {Character}
-        local raycastResult = workspace:Raycast(RootPart.Position, Vector3.new(0, -1000, 0), raycastParams)
+        local moveDir = Vector3.new()
+        if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir - RootPart.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir + RootPart.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - RootPart.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + RootPart.CFrame.RightVector end
         
-        if raycastResult then
-            RootPart.CFrame = CFrame.new(raycastResult.Position + Vector3.new(0, 3, 0))
-        end
-        RootPart.Velocity = Vector3.new()
-        Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-    end
+        moveDir = moveDir.Unit * MOVE_SPEED
+        RootPart.Velocity = Vector3.new(moveDir.X, 0, moveDir.Z) -- Bloque les mouvements verticaux
+    end)
 end
 
--- Connexion des boutons
-SkyBtn.MouseButton1Click:Connect(ToggleFlight)
-DownBtn.MouseButton1Click:Connect(ToggleFlight)
+local function StopFlying()
+    if not isFlying then return end
+    isFlying = false
+    
+    if flyConn then flyConn:Disconnect() end
+    
+    -- Descente contrôlée
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {Character}
+    local rayResult = workspace:Raycast(RootPart.Position, Vector3.new(0, -1000, 0), rayParams)
+    
+    if rayResult then
+        RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
+    end
+    
+    RootPart.Velocity = Vector3.new()
+    Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+end
 
--- Nettoyage si le joueur meurt
+-- Boutons
+SkyBtn.MouseButton1Click:Connect(StartFlying)
+DownBtn.MouseButton1Click:Connect(StopFlying)
+
+-- Nettoyage
 Character:GetPropertyChangedSignal("Parent"):Connect(function()
     if not Character.Parent then
         isFlying = false
+        if flyConn then flyConn:Disconnect() end
         ScreenGui:Destroy()
     end
 end)
 
-print("✅ Steal a Brainrot activé !")
+print("✅ Steal a Brainrot - Prêt !")
