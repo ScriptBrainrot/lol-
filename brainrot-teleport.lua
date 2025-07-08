@@ -1,10 +1,11 @@
 --[[
-  Infinity Hub - Design Premium
-  Boutons ovalisés • Cadre noir parfait • Effets lisses
+  Infinity Hub Premium +
+  Boutons ovalisés • Speed • Skywalk • Design pro
 --]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local UIS = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
@@ -14,7 +15,10 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 -- Configuration
 local FLY_HEIGHT = 150
 local isFlying = false
+local isSpeeding = false
 local AirPlatform = nil
+local NORMAL_WALKSPEED = 16
+local SPEED_BOOST = 50 -- Vitesse augmentée
 
 -- Création du sol
 local function CreateSkyPlatform()
@@ -35,7 +39,7 @@ ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 220, 0, 200)
+MainFrame.Size = UDim2.new(0, 220, 0, 250) -- Agrandi pour 4 boutons
 MainFrame.Position = UDim2.new(0.5, -110, 0.05, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 MainFrame.BackgroundTransparency = 0
@@ -57,19 +61,17 @@ Title.Parent = MainFrame
 local function CreateRoundedButton(name, yPos, color)
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 180, 0, 35) -- Plus compact
+    button.Size = UDim2.new(0, 180, 0, 35)
     button.Position = UDim2.new(0.1, 0, yPos, 0)
     button.Text = name
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.BackgroundColor3 = color
     button.Font = Enum.Font.GothamMedium
     
-    -- Effet ovalisé
     local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 12) -- Arrondi prononcé
+    UICorner.CornerRadius = UDim.new(0, 12)
     UICorner.Parent = button
     
-    -- Effet hover
     button.MouseEnter:Connect(function()
         button.BackgroundTransparency = 0.2
     end)
@@ -82,11 +84,18 @@ local function CreateRoundedButton(name, yPos, color)
 end
 
 -- Boutons premium
-local SkyBtn = CreateRoundedButton("SKY", 0.3, Color3.fromRGB(0, 120, 255))
-local DownBtn = CreateRoundedButton("DOWN", 0.55, Color3.fromRGB(255, 60, 60))
-local DiscordBtn = CreateRoundedButton("DISCORD", 0.8, Color3.fromRGB(114, 137, 218))
+local SkyBtn = CreateRoundedButton("SKY", 0.2, Color3.fromRGB(0, 120, 255))
+local DownBtn = CreateRoundedButton("DOWN", 0.35, Color3.fromRGB(255, 60, 60))
+local SpeedBtn = CreateRoundedButton("SPEED", 0.5, Color3.fromRGB(255, 165, 0)) -- Orange
+local DiscordBtn = CreateRoundedButton("DISCORD", 0.65, Color3.fromRGB(114, 137, 218))
 
 -- Fonctions
+local function ToggleSpeed()
+    isSpeeding = not isSpeeding
+    Humanoid.WalkSpeed = isSpeeding and SPEED_BOOST or NORMAL_WALKSPEED
+    SpeedBtn.Text = isSpeeding and "SPEED (ON)" or "SPEED"
+end
+
 local function GoToSky()
     if isFlying then return end
     CreateSkyPlatform()
@@ -119,6 +128,15 @@ end
 -- Connexions
 SkyBtn.MouseButton1Click:Connect(GoToSky)
 DownBtn.MouseButton1Click:Connect(GoDown)
+SpeedBtn.MouseButton1Click:Connect(ToggleSpeed)
 DiscordBtn.MouseButton1Click:Connect(CopyDiscord)
 
-print("✅ Infinity Hub Premium - Design ovalisé activé")
+-- Reset à la mort
+Character:GetPropertyChangedSignal("Parent"):Connect(function()
+    if not Character.Parent then
+        Humanoid.WalkSpeed = NORMAL_WALKSPEED
+        isSpeeding = false
+    end
+end)
+
+print("✅ Infinity Hub Premium+ activé | Speed: "..SPEED_BOOST.." studs/s")
