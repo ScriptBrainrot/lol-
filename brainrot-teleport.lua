@@ -1,12 +1,11 @@
 --[[
-  Infinity Hub - Ultimate Edition
-  • ESP Vert Fonctionnel • Tween to Base • Discord • Skywalk
+  Infinity Hub - Speed Edition
+  • Vitesse réglable • Skywalk illimité • Design optimisé
 --]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
@@ -16,20 +15,19 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 -- Configuration
 local FLY_HEIGHT = 100
 local isFlying = false
-local espEnabled = false
+local isSpeeding = false
 local AirPlatform = nil
-local ESPFolder = Instance.new("Folder")
-ESPFolder.Name = "ESP_Items"
-ESPFolder.Parent = game.CoreGui
+local NORMAL_SPEED = 16
+local BOOST_SPEED = 50 -- Vitesse boostée
 
 -- UI Optimisée
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "InfinityHubUltimate"
+ScreenGui.Name = "InfinityHubSpeed"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 150, 0, 180) -- Taille ajustée
+MainFrame.Size = UDim2.new(0, 150, 0, 150) -- Compact
 MainFrame.Position = UDim2.new(0.5, -75, 0.05, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 MainFrame.BackgroundTransparency = 0
@@ -67,94 +65,45 @@ local function CreateButton(name, yPos, color)
     return button
 end
 
-local SkyBtn = CreateButton("SKY", 0.15, Color3.fromRGB(0, 100, 255))
-local DownBtn = CreateButton("DOWN", 0.3, Color3.fromRGB(255, 50, 50))
-local ESPBtn = CreateButton("ESP", 0.45, Color3.fromRGB(50, 200, 50)) -- Vert
-local BaseBtn = CreateButton("BASE", 0.6, Color3.fromRGB(100, 100, 255))
-local DiscordBtn = CreateButton("DISCORD", 0.75, Color3.fromRGB(114, 137, 218))
+local SkyBtn = CreateButton("SKY", 0.2, Color3.fromRGB(0, 100, 255))
+local DownBtn = CreateButton("DOWN", 0.4, Color3.fromRGB(255, 50, 50))
+local SpeedBtn = CreateButton("SPEED", 0.6, Color3.fromRGB(255, 150, 0)) -- Orange
+local DiscordBtn = CreateButton("DISCORD", 0.8, Color3.fromRGB(114, 137, 218))
 
--- ESP Version Fonctionnelle (texte vert)
-local function UpdateESP()
-    ESPFolder:ClearAllChildren()
-    
-    if not espEnabled then return end
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Player and player.Character then
-            local char = player.Character
-            local head = char:FindFirstChild("Head")
-            
-            if head then
-                local espText = Instance.new("TextLabel")
-                espText.Name = player.Name.."_ESP"
-                espText.Text = player.Name
-                espText.Size = UDim2.new(0, 200, 0, 30)
-                espText.TextSize = 14
-                espText.TextColor3 = Color3.fromRGB(50, 255, 50) -- Vert vif
-                espText.TextStrokeColor3 = Color3.new(0, 0, 0)
-                espText.TextStrokeTransparency = 0.5
-                espText.BackgroundTransparency = 1
-                espText.Parent = ESPFolder
-                
-                local connection
-                connection = RunService.Heartbeat:Connect(function()
-                    if not char or not char.Parent then
-                        connection:Disconnect()
-                        espText:Destroy()
-                        return
-                    end
-                    
-                    local headPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(head.Position)
-                    if onScreen then
-                        espText.Position = UDim2.new(0, headPos.X - 100, 0, headPos.Y - 30)
-                        espText.Visible = true
-                    else
-                        espText.Visible = false
-                    end
-                end)
-            end
-        end
-    end
+-- Système de vitesse
+local function UpdateSpeed()
+    Humanoid.WalkSpeed = isSpeeding and BOOST_SPEED or NORMAL_SPEED
+    SpeedBtn.Text = isSpeeding and "SPEED ("..BOOST_SPEED..")" or "SPEED"
 end
 
-local function ToggleESP()
-    espEnabled = not espEnabled
-    ESPBtn.Text = espEnabled and "ESP (ON)" or "ESP"
-    UpdateESP()
+local function ToggleSpeed()
+    isSpeeding = not isSpeeding
+    UpdateSpeed()
 end
 
--- Tween to Base (vol vers la base)
-local function TweenToBase()
-    local basePos = Vector3.new(0, 20, 0) -- Remplace par les coordonnées de TA base
-    local tweenInfo = TweenInfo.new(
-        3, -- Durée
-        Enum.EasingStyle.Linear,
-        Enum.EasingDirection.InOut,
-        0,
-        false,
-        0
-    )
+-- Système de vol PERMANENT
+local function CreatePermanentPlatform()
+    if AirPlatform then return end
     
-    local tween = TweenService:Create(RootPart, tweenInfo, {CFrame = CFrame.new(basePos)})
-    tween:Play()
+    AirPlatform = Instance.new("Part")
+    AirPlatform.Name = "PermanentFlightPlatform"
+    AirPlatform.Size = Vector3.new(500, 5, 500)
+    AirPlatform.Position = Vector3.new(RootPart.Position.X, FLY_HEIGHT, RootPart.Position.Z)
+    AirPlatform.Anchored = true
+    AirPlatform.Transparency = 1
+    AirPlatform.CanCollide = true
+    AirPlatform.Parent = Workspace
+    
+    -- Empêche la suppression automatique
+    AirPlatform:SetAttribute("Permanent", true)
 end
 
--- Téléportation Sky/Down
 local function GoToSky()
     if isFlying then return end
     
-    if not AirPlatform then
-        AirPlatform = Instance.new("Part")
-        AirPlatform.Size = Vector3.new(300, 5, 300)
-        AirPlatform.Position = Vector3.new(RootPart.Position.X, FLY_HEIGHT, RootPart.Position.Z)
-        AirPlatform.Anchored = true
-        AirPlatform.Transparency = 1
-        AirPlatform.CanCollide = true
-        AirPlatform.Parent = Workspace
-    end
-    
-    RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 3, RootPart.Position.Z)
+    CreatePermanentPlatform()
     isFlying = true
+    RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 3, RootPart.Position.Z)
 end
 
 local function GoDown()
@@ -173,10 +122,6 @@ local function GoDown()
         RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
     end
     
-    if AirPlatform then
-        AirPlatform:Destroy()
-        AirPlatform = nil
-    end
     isFlying = false
 end
 
@@ -193,20 +138,22 @@ end
 -- Connexions
 SkyBtn.MouseButton1Click:Connect(GoToSky)
 DownBtn.MouseButton1Click:Connect(GoDown)
-ESPBtn.MouseButton1Click:Connect(ToggleESP)
-BaseBtn.MouseButton1Click:Connect(TweenToBase)
+SpeedBtn.MouseButton1Click:Connect(ToggleSpeed)
 DiscordBtn.MouseButton1Click:Connect(CopyDiscord)
 
--- Nettoyage
-Character:GetPropertyChangedSignal("Parent"):Connect(function()
-    if not Character.Parent then
-        if AirPlatform then AirPlatform:Destroy() end
-        ESPFolder:ClearAllChildren()
+-- Anti-reset
+workspace.ChildAdded:Connect(function(child)
+    if child.Name == "PermanentFlightPlatform" then
+        child:SetAttribute("Permanent", true)
     end
 end)
 
--- Mise à jour ESP
-Players.PlayerAdded:Connect(UpdateESP)
-Players.PlayerRemoving:Connect(UpdateESP)
+-- Reset vitesse à la mort
+Character:GetPropertyChangedSignal("Parent"):Connect(function()
+    if not Character.Parent then
+        Humanoid.WalkSpeed = NORMAL_SPEED
+        isSpeeding = false
+    end
+end)
 
-print("✅ INFINITY HUB ULTIMATE ACTIVÉ")
+print("✅ INFINITY HUB SPEED ACTIVÉ")
