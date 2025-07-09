@@ -1,8 +1,9 @@
 --[[
-  Infinity Hub - Version Complète Fonctionnelle
-  • Bouton rond • Fenêtre droite • Système toggle
-  • Téléportation ciel/sol fonctionnelle
-  • Plateforme persistante
+  Infinity Hub - Version Ultra Finale
+  • Téléportation au ciel à 150m avec plateforme bleue
+  • Descente IMMÉDIATE et SÛRE quand on clique sur DOWN
+  • Bouton Discord fonctionnel
+  • Interface propre et positionnée à droite
 --]]
 
 local Players = game:GetService("Players")
@@ -20,7 +21,7 @@ local AirPlatform = nil
 
 -- Création de l'UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "InfinityHubFinal"
+ScreenGui.Name = "InfinityHubUltraFinal"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
@@ -136,11 +137,11 @@ CloseButton.MouseButton1Click:Connect(function()
     MainButton.Visible = true
 end)
 
--- Système de vol amélioré
+-- Système de vol ultra amélioré
 local function GoToSky()
     if isFlying then return end
     
-    -- Crée une plateforme persistante
+    -- Crée la plateforme bleue
     AirPlatform = Instance.new("Part")
     AirPlatform.Name = "InfinityFlightPlatform"
     AirPlatform.Size = Vector3.new(500, 5, 500)
@@ -152,7 +153,7 @@ local function GoToSky()
     AirPlatform.CanCollide = true
     AirPlatform.Parent = workspace
     
-    -- Téléportation sécurisée
+    -- Téléportation directe
     RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 5, RootPart.Position.Z)
     isFlying = true
     
@@ -167,36 +168,23 @@ end
 local function GoDown()
     if not isFlying then return end
     
-    -- Trouve une position valide au sol
-    local rayOrigin = RootPart.Position
-    rayOrigin = Vector3.new(rayOrigin.X, 1000, rayOrigin.Z) -- Commence de très haut
-    
+    -- Détection ultra-précise du sol
+    local rayOrigin = Vector3.new(RootPart.Position.X, 1000, RootPart.Position.Z)
     local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {Character, AirPlatform}
+    rayParams.FilterDescendantsInstances = {Character}
     rayParams.IgnoreWater = true
     
-    local foundPosition = nil
-    for i = 1, 5 do
-        local rayResult = workspace:Raycast(
-            rayOrigin, 
-            Vector3.new(0, -2000, 0), -- Rayon vers le bas très long
-            rayParams
-        )
-        
-        if rayResult and rayResult.Instance.CanCollide then
-            foundPosition = rayResult.Position
-            break
-        end
-        rayOrigin = Vector3.new(rayOrigin.X + math.random(-20,20), rayOrigin.Y, rayOrigin.Z + math.random(-20,20))
+    local rayResult = workspace:Raycast(rayOrigin, Vector3.new(0, -2000, 0), rayParams)
+    
+    if rayResult then
+        -- Téléportation directe au sol trouvé
+        RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
+    else
+        -- Position de secours
+        RootPart.CFrame = CFrame.new(RootPart.Position.X, 5, RootPart.Position.Z)
     end
     
-    -- Position par défaut si aucun sol n'est trouvé
-    foundPosition = foundPosition or Vector3.new(RootPart.Position.X, 5, RootPart.Position.Z)
-    
-    -- Téléportation au sol + 3 unités
-    RootPart.CFrame = CFrame.new(foundPosition + Vector3.new(0, 3, 0))
-    
-    -- Supprime la plateforme
+    -- Destruction IMMÉDIATE de la plateforme
     if AirPlatform then
         AirPlatform:Destroy()
         AirPlatform = nil
@@ -207,7 +195,7 @@ local function GoDown()
     -- Notification
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Infinity Hub",
-        Text = "Vous êtes descendu au sol",
+        Text = "Vous êtes descendu au sol!",
         Duration = 2
     })
 end
@@ -243,4 +231,4 @@ end)
 MainButton.Parent = ScreenGui
 MainWindow.Parent = ScreenGui
 
-print("✅ INFINITY HUB - Version Complète Chargée")
+print("✅ INFINITY HUB - Version Ultra Finale Chargée")
