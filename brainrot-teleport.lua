@@ -1,6 +1,6 @@
 --[[
-  Infinity Hub - Interface Avancée
-  • Bouton rond avec image • Fenêtre déplaçable • Système de toggle
+  Infinity Hub - Design Final
+  • Bouton rond "Infinity | Hub" • Interface compacte • Fond opaque
 --]]
 
 local Players = game:GetService("Players")
@@ -18,18 +18,20 @@ local AirPlatform = nil
 
 -- Création de l'UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "InfinityHubAdvancedUI"
+ScreenGui.Name = "InfinityHubFinalUI"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
 -- Bouton rond principal
-local MainButton = Instance.new("ImageButton")
+local MainButton = Instance.new("TextButton") -- Changé en TextButton pour le texte
 MainButton.Name = "MainRoundButton"
-MainButton.Size = UDim2.new(0, 50, 0, 50)
-MainButton.Position = UDim2.new(0.9, -25, 0.5, -25) -- Position par défaut
+MainButton.Size = UDim2.new(0, 80, 0, 80) -- Taille augmentée
+MainButton.Position = UDim2.new(0.9, -40, 0.5, -40)
 MainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainButton.Image = "rbxassetid://14384092117" -- Remplace par ton imageID
-MainButton.ScaleType = Enum.ScaleType.Crop
+MainButton.Text = "Infinity | Hub"
+MainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainButton.TextSize = 12
+MainButton.Font = Enum.Font.GothamBold
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(1, 0) -- Rond parfait
@@ -38,58 +40,72 @@ UICorner.Parent = MainButton
 -- Fenêtre principale (cachée au départ)
 local MainWindow = Instance.new("Frame")
 MainWindow.Name = "MainWindow"
-MainWindow.Size = UDim2.new(0, 130, 0, 150)
-MainWindow.Position = UDim2.new(0.5, -65, 0.5, -75)
-MainWindow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainWindow.BackgroundTransparency = 0.2
+MainWindow.Size = UDim2.new(0, 300, 0, 60) -- Plus large mais moins haute
+MainWindow.Position = UDim2.new(0.5, -150, 0.5, -30)
+MainWindow.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Noir opaque
+MainWindow.BackgroundTransparency = 0 -- Pas de transparence
 MainWindow.BorderSizePixel = 0
 MainWindow.Visible = false
 
 -- Bouton de fermeture (X)
 local CloseButton = Instance.new("TextButton")
 CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 20, 0, 20)
-CloseButton.Position = UDim2.new(1, -25, 0, 5)
+CloseButton.Size = UDim2.new(0, 25, 0, 25)
+CloseButton.Position = UDim2.new(1, -30, 0, 5)
 CloseButton.Text = "X"
 CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 14
+CloseButton.TextSize = 16
 CloseButton.BackgroundTransparency = 1
 CloseButton.Parent = MainWindow
 
--- Titre
-local Title = Instance.new("TextLabel")
-Title.Text = "INFINITY"
-Title.Size = UDim2.new(0, 100, 0, 20)
-Title.Position = UDim2.new(0.15, 0, 0.05, 0)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
-Title.Parent = MainWindow
+-- Boutons en ligne (sans espace)
+local SkyBtn = Instance.new("TextButton")
+SkyBtn.Name = "SKY"
+SkyBtn.Size = UDim2.new(0.33, -5, 1, -10)
+SkyBtn.Position = UDim2.new(0, 5, 0.5, 0)
+SkyBtn.AnchorPoint = Vector2.new(0, 0.5)
+SkyBtn.Text = "SKY"
+SkyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SkyBtn.TextSize = 14
+SkyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+SkyBtn.Font = Enum.Font.GothamBold
+SkyBtn.Parent = MainWindow
 
--- Boutons fonctionnels
-local function CreateActionButton(name, yPos, color)
-    local button = Instance.new("TextButton")
-    button.Name = name
-    button.Size = UDim2.new(0, 110, 0, 30)
-    button.Position = UDim2.new(0.1, 0, yPos, 0)
-    button.Text = name
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 12
-    button.BackgroundColor3 = color
-    button.Font = Enum.Font.GothamMedium
-    
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 6)
-    buttonCorner.Parent = button
-    
-    button.Parent = MainWindow
-    return button
+local DownBtn = Instance.new("TextButton")
+DownBtn.Name = "DOWN"
+DownBtn.Size = UDim2.new(0.33, -5, 1, -10)
+DownBtn.Position = UDim2.new(0.33, 0, 0.5, 0)
+DownBtn.AnchorPoint = Vector2.new(0, 0.5)
+DownBtn.Text = "DOWN"
+DownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DownBtn.TextSize = 14
+DownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+DownBtn.Font = Enum.Font.GothamBold
+DownBtn.Parent = MainWindow
+
+local DiscordBtn = Instance.new("TextButton")
+DiscordBtn.Name = "DISCORD"
+DiscordBtn.Size = UDim2.new(0.33, -5, 1, -10)
+DiscordBtn.Position = UDim2.new(0.66, 0, 0.5, 0)
+DiscordBtn.AnchorPoint = Vector2.new(0, 0.5)
+DiscordBtn.Text = "DISCORD"
+DiscordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DiscordBtn.TextSize = 14
+DiscordBtn.BackgroundColor3 = Color3.fromRGB(114, 137, 218)
+DiscordBtn.Font = Enum.Font.GothamBold
+DiscordBtn.Parent = MainWindow
+
+-- Arrondis pour les boutons
+local function AddCorner(parent)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = parent
 end
 
-local SkyBtn = CreateActionButton("SKY", 0.25, Color3.fromRGB(0, 100, 255))
-local DownBtn = CreateActionButton("DOWN", 0.55, Color3.fromRGB(255, 50, 50))
-local DiscordBtn = CreateActionButton("DISCORD", 0.85, Color3.fromRGB(114, 137, 218))
+AddCorner(SkyBtn)
+AddCorner(DownBtn)
+AddCorner(DiscordBtn)
+AddCorner(MainWindow)
 
 -- Système de déplacement pour le bouton rond
 local dragging = false
@@ -177,7 +193,7 @@ end
 local function CopyDiscord()
     setclipboard("https://discord.gg/ZVX8GNMNaD")
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "INFINITY",
+        Title = "Infinity | Hub",
         Text = "Lien Discord copié !",
         Duration = 2
     })
@@ -199,4 +215,4 @@ end)
 MainButton.Parent = ScreenGui
 MainWindow.Parent = ScreenGui
 
-print("✅ INFINITY HUB - Interface Avancée Activée")
+print("✅ INFINITY | HUB - Design Final Activé")
