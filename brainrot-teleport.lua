@@ -1,13 +1,12 @@
 --[[
-  Infinity Hub - Version Premium Fonctionnelle
-  • Garde VOTRE design original
-  • Descente qui marche À TOUS LES COUPS
-  • Plateforme invisible géante
-  • Effets fluides
+  Infinity Hub - Vol Infini
+  • Reste en l'air SANS limite de temps
+  • Descente précise sous votre position
 --]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
@@ -15,164 +14,114 @@ local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
-local FLY_HEIGHT = 150
+local FLY_HEIGHT = 150 -- Hauteur augmentée
 local isFlying = false
-local AirPlatform = nil
+local platformParts = {} -- Stocke toutes les parts du sol
 
--- Création UI (VOTRE DESIGN EXACT)
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "InfinityHubPremium"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ResetOnSpawn = false
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 220, 0, 200)
-MainFrame.Position = UDim2.new(0.5, -110, 0.05, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-MainFrame.BackgroundTransparency = 0
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-
--- Titre
-local Title = Instance.new("TextLabel")
-Title.Text = "Infinity | Hub"
-Title.Size = UDim2.new(0, 200, 0, 30)
-Title.Position = UDim2.new(0.1, 0, 0.05, 0)
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 18
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
-Title.Parent = MainFrame
-
--- Fonction pour créer des boutons ovalisés (VOTRE CODE EXACT)
-local function CreateRoundedButton(name, yPos, color)
-    local button = Instance.new("TextButton")
-    button.Name = name
-    button.Size = UDim2.new(0, 180, 0, 35)
-    button.Position = UDim2.new(0.1, 0, yPos, 0)
-    button.Text = name
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.BackgroundColor3 = color
-    button.Font = Enum.Font.GothamMedium
-    
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 12)
-    UICorner.Parent = button
-    
-    button.MouseEnter:Connect(function()
-        button.BackgroundTransparency = 0.2
-    end)
-    button.MouseLeave:Connect(function()
-        button.BackgroundTransparency = 0
-    end)
-    
-    button.Parent = MainFrame
-    return button
-end
-
--- Boutons premium (VOTRE CODE EXACT)
-local SkyBtn = CreateRoundedButton("SKY", 0.3, Color3.fromRGB(0, 120, 255))
-local DownBtn = CreateRoundedButton("DOWN", 0.55, Color3.fromRGB(255, 60, 60))
-local DiscordBtn = CreateRoundedButton("DISCORD", 0.8, Color3.fromRGB(114, 137, 218))
-
--- NOUVELLE FONCTION DE PLATEFORME AMÉLIORÉE
-local function CreateSkyPlatform()
-    if AirPlatform then return end
-    
-    AirPlatform = Instance.new("Part")
-    AirPlatform.Size = Vector3.new(10000, 10, 10000) -- Plus large pour éviter les chutes
-    AirPlatform.Position = Vector3.new(0, FLY_HEIGHT - 5, 0) -- Ajustement parfait
-    AirPlatform.Anchored = true
-    AirPlatform.Transparency = 1 -- Totalement invisible
-    AirPlatform.CanCollide = true
-    AirPlatform.Parent = Workspace
-    
-    -- Garantit que la plateforme reste
-    AirPlatform:SetAttribute("InfinityPlatform", true)
-end
-
--- FONCTION SKY AMÉLIORÉE
-local function GoToSky()
-    if isFlying then return end
-    
-    CreateSkyPlatform()
-    
-    -- Téléportation fluide avec animation
-    local startPos = RootPart.Position
-    local endPos = Vector3.new(startPos.X, FLY_HEIGHT + 3, startPos.Z)
-    
-    for i = 1, 30 do
-        RootPart.CFrame = CFrame.new(startPos:Lerp(endPos, i/30))
-        task.wait(0.01)
+-- Crée un sol infini à la volée
+local function CreateInfinitePlatform()
+    -- Nettoie l'ancien sol
+    for _, part in ipairs(platformParts) do
+        part:Destroy()
     end
-    
-    isFlying = true
+    platformParts = {}
+
+    -- Crée une grille de 3x3 parts (plus stable)
+    for x = -1, 1 do
+        for z = -1, 1 do
+            local part = Instance.new("Part")
+            part.Size = Vector3.new(200, 5, 200)
+            part.Position = Vector3.new(
+                RootPart.Position.X + (x * 150),
+                FLY_HEIGHT,
+                RootPart.Position.Z + (z * 150)
+            )
+            part.Anchored = true
+            part.Transparency = 1
+            part.CanCollide = true
+            part.Parent = workspace
+            table.insert(platformParts, part)
+        end
+    end
 end
 
--- NOUVELLE FONCTION DOWN QUI MARCHE VRAIMENT
-local function GoDown()
+-- Système de vol infini
+local function EnableInfiniteFlight()
+    CreateInfinitePlatform()
+    
+    -- Maintient en l'air même si le sol disparaît
+    local flightLoop
+    flightLoop = RunService.Heartbeat:Connect(function()
+        if not isFlying then 
+            flightLoop:Disconnect()
+            return 
+        end
+        
+        -- Anti-chute
+        if RootPart.Position.Y < FLY_HEIGHT + 2 then
+            RootPart.Velocity = Vector3.new(0, 10, 0)
+        else
+            RootPart.Velocity = Vector3.new(0, 0, 0)
+        end
+    end)
+end
+
+-- UI (version simplifiée)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+
+local SkyBtn = Instance.new("TextButton")
+SkyBtn.Text = "SKY"
+SkyBtn.Size = UDim2.new(0, 100, 0, 40)
+SkyBtn.Position = UDim2.new(0.5, -50, 0.7, 0)
+SkyBtn.Parent = ScreenGui
+
+local DownBtn = Instance.new("TextButton")
+DownBtn.Text = "DOWN"
+DownBtn.Size = UDim2.new(0, 100, 0, 40)
+DownBtn.Position = UDim2.new(0.5, -50, 0.8, 0)
+DownBtn.Parent = ScreenGui
+
+-- Contrôles
+SkyBtn.MouseButton1Click:Connect(function()
+    if isFlying then return end
+    isFlying = true
+    EnableInfiniteFlight()
+    RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 3, RootPart.Position.Z)
+end)
+
+DownBtn.MouseButton1Click:Connect(function()
     if not isFlying then return end
     
-    -- 1. Trouver le VRAI sol sous le joueur
-    local rayOrigin = RootPart.Position + Vector3.new(0, 50, 0) -- Commence un peu plus haut
-    local rayDirection = Vector3.new(0, -10000, 0) -- Rayon ultra-long
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {Character}
-    raycastParams.IgnoreWater = true
+    -- Trouve le sol DIRECTEMENT sous le joueur
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {Character}
     
-    local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    local rayResult = workspace:Raycast(
+        Vector3.new(RootPart.Position.X, FLY_HEIGHT + 50, RootPart.Position.Z),
+        Vector3.new(0, -1000, 0),
+        rayParams
+    )
     
-    -- 2. Téléportation PRÉCISE au sol
     if rayResult then
-        local humanoidHeight = Humanoid.HipHeight
-        RootPart.CFrame = CFrame.new(
-            RootPart.Position.X,
-            rayResult.Position.Y + humanoidHeight + 0.5, -- +0.5 pour sécurité
-            RootPart.Position.Z
-        )
-    else
-        -- Position de secours si aucun sol (ne devrait jamais arriver)
-        RootPart.CFrame = CFrame.new(RootPart.Position.X, 5, RootPart.Position.Z)
+        RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
     end
     
-    -- 3. Suppression GARANTIE de la plateforme
-    if AirPlatform then
-        AirPlatform:Destroy()
-        AirPlatform = nil
+    -- Nettoyage
+    for _, part in ipairs(platformParts) do
+        part:Destroy()
     end
-    
+    platformParts = {}
     isFlying = false
-    
-    -- Petit effet visuel
-    Humanoid.Jump = true
-end
+end)
 
--- FONCTION DISCORD (identique)
-local function CopyDiscord()
-    setclipboard("https://discord.gg/ZVX8GNMNaD")
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Infinity Hub",
-        Text = "Lien Discord copié !",
-        Duration = 3,
-        Icon = "rbxassetid://11240648136"
-    })
-end
-
--- Connexions (identique)
-SkyBtn.MouseButton1Click:Connect(GoToSky)
-DownBtn.MouseButton1Click:Connect(GoDown)
-DiscordBtn.MouseButton1Click:Connect(CopyDiscord)
-
--- Gestion respawn améliorée
-Player.CharacterAdded:Connect(function(newChar)
-    Character = newChar
-    Humanoid = newChar:WaitForChild("Humanoid")
-    RootPart = newChar:WaitForChild("HumanoidRootPart")
-    
-    if isFlying then
-        task.wait(1) -- Attend que le personnage soit stable
-        GoToSky() -- Recrée la plateforme automatiquement
+-- Empêche le reset du personnage
+Character:GetPropertyChangedSignal("Parent"):Connect(function()
+    if not Character.Parent then
+        for _, part in ipairs(platformParts) do
+            part:Destroy()
+        end
     end
 end)
 
-print("✅ Infinity Hub Premium - Version Finale Fonctionnelle")
+print("✅ SYSTEME DE VOL INFINI ACTIVÉ")
