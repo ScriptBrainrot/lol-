@@ -1,77 +1,249 @@
--- Infinity | Hub - Script pour Delta
-local UILibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = UILibrary.CreateLib("Infinity | Hub", "Sentinel")
+--[[
+  Infinity Hub - Version Finale Améliorée
+  • Problème de téléportation au sol résolu
+  • Plateforme permanente tant que l'utilisateur ne clique pas sur DOWN
+--]]
 
--- Main Tab
-local MainTab = Window:NewTab("Main")
-local MainSection = MainTab:NewSection("Teleportation")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 
--- Bouton Sky (ancien Steal)
-MainSection:NewButton("Sky", "Téléporte au ciel avec plateforme", function()
-    -- Téléportation à 150m
-    local player = game.Players.LocalPlayer
-    local char = player.Character or player.CharacterAdded:Wait()
-    local humanoid = char:WaitForChild("Humanoid")
-    
-    -- Création de la plateforme invisible
-    local platform = Instance.new("Part")
-    platform.Name = "InfinityHubPlatform"
-    platform.Size = Vector3.new(100, 1, 100)
-    platform.Transparency = 1
-    platform.Anchored = true
-    platform.CanCollide = true
-    platform.Position = Vector3.new(0, 150, 0)
-    platform.Parent = workspace
-    
-    -- Téléportation du joueur
-    char:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(0, 155, 0)
-    
-    -- Message de confirmation
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Infinity | Hub",
-        Text = "Vous avez été téléporté à 150m avec plateforme!",
-        Duration = 5
-    })
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- Configuration
+local FLY_HEIGHT = 150 -- Hauteur augmentée à 150m comme demandé
+local isFlying = false
+local AirPlatform = nil
+
+-- Création de l'UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "InfinityHubFinal"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- 1. Bouton rond principal
+local MainButton = Instance.new("TextButton")
+MainButton.Name = "MainRoundButton"
+MainButton.Size = UDim2.new(0, 60, 0, 60)
+MainButton.Position = UDim2.new(0.95, -30, 0.5, -30)
+MainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainButton.Text = "∞"
+MainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainButton.TextSize = 20
+MainButton.Font = Enum.Font.GothamBold
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = MainButton
+
+-- 2. Fenêtre droite (cachée au départ)
+local MainWindow = Instance.new("Frame")
+MainWindow.Name = "MainWindow"
+MainWindow.Size = UDim2.new(0, 180, 0, 100)
+MainWindow.Position = UDim2.new(0.85, -10, 0.5, -50)
+MainWindow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+MainWindow.BackgroundTransparency = 0
+MainWindow.BorderSizePixel = 0
+MainWindow.Visible = false
+
+-- Titre fenêtre
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Text = "Infinity | Hub"
+Title.Size = UDim2.new(0, 160, 0, 20)
+Title.Position = UDim2.new(0.5, -80, 0.1, 0)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Parent = MainWindow
+
+-- Bouton fermeture (X)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 20, 0, 20)
+CloseButton.Position = UDim2.new(1, -25, 0, 5)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 14
+CloseButton.BackgroundTransparency = 1
+CloseButton.Parent = MainWindow
+
+-- Boutons fonctionnels (en ligne)
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Name = "ButtonContainer"
+ButtonContainer.Size = UDim2.new(0, 160, 0, 60)
+ButtonContainer.Position = UDim2.new(0.5, -80, 0.6, -30)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.Parent = MainWindow
+
+local SkyBtn = Instance.new("TextButton")
+SkyBtn.Name = "SKY"
+SkyBtn.Size = UDim2.new(0.32, -2, 1, 0)
+SkyBtn.Position = UDim2.new(0, 0, 0, 0)
+SkyBtn.Text = "SKY"
+SkyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SkyBtn.TextSize = 12
+SkyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+SkyBtn.Font = Enum.Font.GothamMedium
+SkyBtn.Parent = ButtonContainer
+
+local DownBtn = Instance.new("TextButton")
+DownBtn.Name = "DOWN"
+DownBtn.Size = UDim2.new(0.32, -2, 1, 0)
+DownBtn.Position = UDim2.new(0.34, 0, 0, 0)
+DownBtn.Text = "DOWN"
+DownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DownBtn.TextSize = 12
+DownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+DownBtn.Font = Enum.Font.GothamMedium
+DownBtn.Parent = ButtonContainer
+
+local DiscordBtn = Instance.new("TextButton")
+DiscordBtn.Name = "DISCORD"
+DiscordBtn.Size = UDim2.new(0.32, -2, 1, 0)
+DiscordBtn.Position = UDim2.new(0.68, 0, 0, 0)
+DiscordBtn.Text = "DISCORD"
+DiscordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DiscordBtn.TextSize = 12
+DiscordBtn.BackgroundColor3 = Color3.fromRGB(114, 137, 218)
+DiscordBtn.Font = Enum.Font.GothamMedium
+DiscordBtn.Parent = ButtonContainer
+
+-- Arrondir les boutons
+local function AddCorner(parent)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 4)
+    corner.Parent = parent
+end
+
+AddCorner(SkyBtn)
+AddCorner(DownBtn)
+AddCorner(DiscordBtn)
+AddCorner(MainButton)
+
+-- Système de toggle
+MainButton.MouseButton1Click:Connect(function()
+    MainButton.Visible = false
+    MainWindow.Visible = true
 end)
 
--- Bouton Down (ancien Float)
-MainSection:NewButton("Down", "Retour au sol", function()
-    local player = game.Players.LocalPlayer
-    local char = player.Character or player.CharacterAdded:Wait()
+CloseButton.MouseButton1Click:Connect(function()
+    MainWindow.Visible = false
+    MainButton.Visible = true
+end)
+
+-- Système de vol PERMANENT amélioré
+local function GoToSky()
+    if isFlying then return end
     
-    -- Suppression de la plateforme si elle existe
-    if workspace:FindFirstChild("InfinityHubPlatform") then
-        workspace.InfinityHubPlatform:Destroy()
+    -- Crée une plateforme persistante et légèrement visible
+    AirPlatform = Instance.new("Part")
+    AirPlatform.Name = "InfinityFlightPlatform"
+    AirPlatform.Size = Vector3.new(500, 5, 500)
+    AirPlatform.Position = Vector3.new(RootPart.Position.X, FLY_HEIGHT, RootPart.Position.Z)
+    AirPlatform.Anchored = true
+    AirPlatform.Transparency = 0.7
+    AirPlatform.Color = Color3.fromRGB(0, 150, 255)
+    AirPlatform.Material = Enum.Material.Neon
+    AirPlatform.CanCollide = true
+    AirPlatform.Parent = workspace
+    
+    -- Téléportation sécurisée avec vérification
+    local success, err = pcall(function()
+        RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 5, RootPart.Position.Z)
+    end)
+    
+    if not success then
+        warn("Erreur de téléportation: "..err)
+        AirPlatform:Destroy()
+        return
     end
     
-    -- Téléportation au sol
-    char:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(0, 5, 0)
+    isFlying = true
     
-    -- Message de confirmation
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Infinity | Hub",
-        Text = "Vous êtes retourné au sol!",
-        Duration = 5
-    })
-end)
-
--- Section Discord
-local DiscordSection = MainTab:NewSection("Discord")
-DiscordSection:NewButton("Discord", "Rejoignez notre serveur Discord", function()
-    -- Copie du lien dans le presse-papier
-    setclipboard("https://discord.gg/ZVX8GNMNaD")
-    
-    -- Notification
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Infinity | Hub",
-        Text = "Lien Discord copié!",
-        Duration = 5
-    })
-end)
-
--- Positionnement de l'interface
-local gui = game:GetService("CoreGui"):FindFirstChild("Kavo UI")
-if gui then
-    gui.Main.Size = UDim2.new(0, 350, 0, 400) -- Taille réduite
-    gui.Main.Position = UDim2.new(1, -360, 0.5, -200) -- Position milieu droite
+    -- Système de maintien en l'air permanent
+    local connection
+    connection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not isFlying or not Character or not Character.Parent then
+            connection:Disconnect()
+            return
+        end
+        
+        -- Vérifie si le joueur est trop bas et le remonte si nécessaire
+        if RootPart.Position.Y < FLY_HEIGHT then
+            RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 5, RootPart.Position.Z)
+        end
+    end)
 end
+
+local function GoDown()
+    if not isFlying then return end
+    
+    -- Détection précise du sol avec plusieurs raycasts pour plus de fiabilité
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {Character}
+    rayParams.IgnoreWater = true
+    
+    local foundPosition = nil
+    for i = 1, 5 do  -- Plusieurs tentatives
+        local rayResult = workspace:Raycast(
+            RootPart.Position + Vector3.new(math.random(-10,10), 0, math.random(-10,10)),
+            Vector3.new(0, -1000, 0),
+            rayParams
+        )
+        
+        if rayResult and rayResult.Instance.CanCollide then
+            foundPosition = rayResult.Position
+            break
+        end
+        wait(0.1)
+    end
+    
+    -- Position de secours si aucun sol n'est trouvé
+    foundPosition = foundPosition or Vector3.new(RootPart.Position.X, 5, RootPart.Position.Z)
+    
+    RootPart.CFrame = CFrame.new(foundPosition + Vector3.new(0, 3, 0))
+    
+    if AirPlatform then
+        AirPlatform:Destroy()
+        AirPlatform = nil
+    end
+    isFlying = false
+end
+
+-- Discord
+local function CopyDiscord()
+    setclipboard("https://discord.gg/ZVX8GNMNaD")
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Infinity | Hub",
+        Text = "Lien Discord copié !",
+        Duration = 2,
+        Icon = "rbxassetid://11240648136" -- Icône Discord
+    })
+end
+
+-- Connexions
+SkyBtn.MouseButton1Click:Connect(GoToSky)
+DownBtn.MouseButton1Click:Connect(GoDown)
+DiscordBtn.MouseButton1Click:Connect(CopyDiscord)
+
+-- Nettoyage amélioré
+Player.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    RootPart = newChar:WaitForChild("HumanoidRootPart")
+    
+    if isFlying then
+        -- Recrée la plateforme si le personnage respawn
+        wait(1) -- Attendre que le personnage soit complètement chargé
+        GoToSky()
+    end
+end)
+
+-- Initialisation
+MainButton.Parent = ScreenGui
+MainWindow.Parent = ScreenGui
+
+print("✅ INFINITY HUB - Version Finale Améliorée Chargée")
