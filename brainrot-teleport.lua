@@ -1,59 +1,77 @@
 --[[
-  Infinity Hub - Ultimate Fixed Edition
-  • ESP Fonctionnel • Speed 50 • Vol Illimité • Discord
+  Infinity Hub - Interface Avancée
+  • Bouton rond avec image • Fenêtre déplaçable • Système de toggle
 --]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
 local FLY_HEIGHT = 100
 local isFlying = false
-local isSpeeding = false
-local espEnabled = false
 local AirPlatform = nil
-local ESPFolder = Instance.new("Folder")
-ESPFolder.Name = "ESP_Items"
-ESPFolder.Parent = game.CoreGui
-local NORMAL_SPEED = 16
-local BOOST_SPEED = 50
 
--- UI Optimisée
+-- Création de l'UI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "InfinityHubUltimate"
+ScreenGui.Name = "InfinityHubAdvancedUI"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 150, 0, 180)
-MainFrame.Position = UDim2.new(0.5, -75, 0.05, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-MainFrame.BackgroundTransparency = 0
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
+-- Bouton rond principal
+local MainButton = Instance.new("ImageButton")
+MainButton.Name = "MainRoundButton"
+MainButton.Size = UDim2.new(0, 50, 0, 50)
+MainButton.Position = UDim2.new(0.9, -25, 0.5, -25) -- Position par défaut
+MainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainButton.Image = "rbxassetid://14384092117" -- Remplace par ton imageID
+MainButton.ScaleType = Enum.ScaleType.Crop
 
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0) -- Rond parfait
+UICorner.Parent = MainButton
+
+-- Fenêtre principale (cachée au départ)
+local MainWindow = Instance.new("Frame")
+MainWindow.Name = "MainWindow"
+MainWindow.Size = UDim2.new(0, 130, 0, 150)
+MainWindow.Position = UDim2.new(0.5, -65, 0.5, -75)
+MainWindow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainWindow.BackgroundTransparency = 0.2
+MainWindow.BorderSizePixel = 0
+MainWindow.Visible = false
+
+-- Bouton de fermeture (X)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 20, 0, 20)
+CloseButton.Position = UDim2.new(1, -25, 0, 5)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 14
+CloseButton.BackgroundTransparency = 1
+CloseButton.Parent = MainWindow
+
+-- Titre
 local Title = Instance.new("TextLabel")
-Title.Text = "INFINITY HUB"
-Title.Size = UDim2.new(0, 130, 0, 20)
-Title.Position = UDim2.new(0.1, 0, 0.05, 0)
+Title.Text = "INFINITY"
+Title.Size = UDim2.new(0, 100, 0, 20)
+Title.Position = UDim2.new(0.15, 0, 0.05, 0)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.BackgroundTransparency = 1
-Title.Parent = MainFrame
+Title.Parent = MainWindow
 
--- Boutons
-local function CreateButton(name, yPos, color)
+-- Boutons fonctionnels
+local function CreateActionButton(name, yPos, color)
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 130, 0, 25)
+    button.Size = UDim2.new(0, 110, 0, 30)
     button.Position = UDim2.new(0.1, 0, yPos, 0)
     button.Text = name
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -61,90 +79,77 @@ local function CreateButton(name, yPos, color)
     button.BackgroundColor3 = color
     button.Font = Enum.Font.GothamMedium
     
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 6)
-    UICorner.Parent = button
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 6)
+    buttonCorner.Parent = button
     
-    button.Parent = MainFrame
+    button.Parent = MainWindow
     return button
 end
 
-local SkyBtn = CreateButton("SKY", 0.15, Color3.fromRGB(0, 100, 255))
-local DownBtn = CreateButton("DOWN", 0.3, Color3.fromRGB(255, 50, 50))
-local SpeedBtn = CreateButton("SPEED", 0.45, Color3.fromRGB(255, 150, 0))
-local ESPBtn = CreateButton("ESP", 0.6, Color3.fromRGB(50, 200, 50))
-local DiscordBtn = CreateButton("DISCORD", 0.75, Color3.fromRGB(114, 137, 218))
+local SkyBtn = CreateActionButton("SKY", 0.25, Color3.fromRGB(0, 100, 255))
+local DownBtn = CreateActionButton("DOWN", 0.55, Color3.fromRGB(255, 50, 50))
+local DiscordBtn = CreateActionButton("DISCORD", 0.85, Color3.fromRGB(114, 137, 218))
 
--- ESP FONCTIONNEL (Version optimale)
-local function UpdateESP()
-    ESPFolder:ClearAllChildren()
-    
-    if not espEnabled then return end
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= Player and player.Character then
-            local char = player.Character
-            local head = char:FindFirstChild("Head")
-            
-            if head then
-                local espText = Instance.new("TextLabel")
-                espText.Name = player.Name.."_ESP"
-                espText.Text = "["..player.Name.."]"
-                espText.Size = UDim2.new(0, 200, 0, 30)
-                espText.TextSize = 14
-                espText.TextColor3 = Color3.fromRGB(0, 255, 0) -- Vert fluo
-                espText.TextStrokeColor3 = Color3.new(0, 0, 0)
-                espText.TextStrokeTransparency = 0.5
-                espText.BackgroundTransparency = 1
-                espText.Parent = ESPFolder
-                
-                RunService.Heartbeat:Connect(function()
-                    if not char or not char.Parent then
-                        espText:Destroy()
-                        return
-                    end
-                    
-                    local headPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(head.Position)
-                    if onScreen then
-                        espText.Position = UDim2.new(0, headPos.X - 100, 0, headPos.Y - 50)
-                        espText.Visible = true
-                    else
-                        espText.Visible = false
-                    end
-                end)
-            end
-        end
+-- Système de déplacement pour le bouton rond
+local dragging = false
+local dragStartPos
+local buttonStartPos
+
+MainButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStartPos = Vector2.new(input.Position.X, input.Position.Y)
+        buttonStartPos = MainButton.Position
     end
-end
+end)
 
--- SPEED FONCTIONNEL
-local function ToggleSpeed()
-    isSpeeding = not isSpeeding
-    Humanoid.WalkSpeed = isSpeeding and BOOST_SPEED or NORMAL_SPEED
-    SpeedBtn.Text = isSpeeding and "SPEED ("..BOOST_SPEED..")" or "SPEED"
-end
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = Vector2.new(input.Position.X, input.Position.Y) - dragStartPos
+        MainButton.Position = UDim2.new(
+            buttonStartPos.X.Scale,
+            buttonStartPos.X.Offset + delta.X,
+            buttonStartPos.Y.Scale,
+            buttonStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
 
--- VOL ILLIMITÉ CORRIGÉ
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Toggle fenêtre
+MainButton.MouseButton1Click:Connect(function()
+    MainButton.Visible = false
+    MainWindow.Visible = true
+    MainWindow.Parent = ScreenGui
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    MainWindow.Visible = false
+    MainButton.Visible = true
+end)
+
+-- Système de vol
 local function GoToSky()
     if isFlying then return end
     
-    -- Crée un nouveau sol à chaque activation
-    if AirPlatform then AirPlatform:Destroy() end
-    
     AirPlatform = Instance.new("Part")
-    AirPlatform.Size = Vector3.new(500, 5, 500)
+    AirPlatform.Size = Vector3.new(300, 5, 300)
     AirPlatform.Position = Vector3.new(RootPart.Position.X, FLY_HEIGHT, RootPart.Position.Z)
     AirPlatform.Anchored = true
     AirPlatform.Transparency = 1
     AirPlatform.CanCollide = true
     AirPlatform.Parent = Workspace
     
-    -- Téléportation sécurisée
     RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 3, RootPart.Position.Z)
     isFlying = true
 end
 
--- DESCENTE FONCTIONNELLE
 local function GoDown()
     if not isFlying then return end
     
@@ -168,38 +173,30 @@ local function GoDown()
     isFlying = false
 end
 
--- DISCORD
+-- Discord
 local function CopyDiscord()
     setclipboard("https://discord.gg/ZVX8GNMNaD")
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "INFINITY HUB",
+        Title = "INFINITY",
         Text = "Lien Discord copié !",
-        Duration = 3
+        Duration = 2
     })
 end
 
--- CONNEXIONS
+-- Connexions
 SkyBtn.MouseButton1Click:Connect(GoToSky)
 DownBtn.MouseButton1Click:Connect(GoDown)
-SpeedBtn.MouseButton1Click:Connect(ToggleSpeed)
-ESPBtn.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    ESPBtn.Text = espEnabled and "ESP (ON)" or "ESP"
-    UpdateESP()
-end)
 DiscordBtn.MouseButton1Click:Connect(CopyDiscord)
 
--- ANTI-BUG
+-- Nettoyage
 Character:GetPropertyChangedSignal("Parent"):Connect(function()
-    if not Character.Parent then
-        if AirPlatform then AirPlatform:Destroy() end
-        ESPFolder:ClearAllChildren()
-        Humanoid.WalkSpeed = NORMAL_SPEED
+    if not Character.Parent and AirPlatform then
+        AirPlatform:Destroy()
     end
 end)
 
--- Mise à jour ESP quand un joueur rejoint
-Players.PlayerAdded:Connect(UpdateESP)
-Players.PlayerRemoving:Connect(UpdateESP)
+-- Initialisation
+MainButton.Parent = ScreenGui
+MainWindow.Parent = ScreenGui
 
-print("✅ INFINITY HUB ULTIMATE - Tout fonctionne !")
+print("✅ INFINITY HUB - Interface Avancée Activée")
