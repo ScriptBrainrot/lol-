@@ -48,13 +48,13 @@ MainWindow.Name = "MainWindow"
 MainWindow.Size = UDim2.new(0, 180, 0, 120)
 MainWindow.Position = UDim2.new(1, 10, 0.5, -60) -- Hors écran au départ
 MainWindow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-MainWindow.BackgroundTransparency = 0
+MainWindow.BackgroundTransparency = 0.3
 MainWindow.BorderSizePixel = 0
 MainWindow.ClipsDescendants = true
 
 -- Titre
 local Title = Instance.new("TextLabel")
-Title.Text = "INFINITY | HUB"
+Title.Text = "STEAL | ARBIX HUB"
 Title.Size = UDim2.new(0, 160, 0, 20)
 Title.Position = UDim2.new(0.5, -80, 0.1, 0)
 Title.Font = Enum.Font.GothamBold
@@ -82,15 +82,14 @@ ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainWindow
 
 local buttons = {
-    {Name = "SKY", Color = Color3.fromRGB(0, 100, 255), Y = 0},
-    {Name = "DOWN", Color = Color3.fromRGB(255, 50, 50), Y = 0.35},
-    {Name = "DISCORD", Color = Color3.fromRGB(114, 137, 218), Y = 0.7}
+    {Name = "STEAL", Color = Color3.fromRGB(0, 100, 255), Y = 0},
+    {Name = "DOWN", Color = Color3.fromRGB(255, 50, 50), Y = 0.35}
 }
 
 for _, btn in ipairs(buttons) do
     local button = Instance.new("TextButton")
     button.Name = btn.Name
-    button.Size = UDim2.new(1, 0, 0.3, -5)
+    button.Size = UDim2.new(1, 0, 0.45, -5)
     button.Position = UDim2.new(0, 0, btn.Y, 0)
     button.Text = btn.Name
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -197,15 +196,27 @@ local function StopFlight()
     -- Détection précise du sol
     local rayParams = RaycastParams.new()
     rayParams.FilterDescendantsInstances = {Character}
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
     
-    local rayResult = workspace:Raycast(
-        RootPart.Position + Vector3.new(0, 50, 0),
-        Vector3.new(0, -1000, 0),
-        rayParams
-    )
+    local rayOrigin = RootPart.Position
+    local rayDirection = Vector3.new(0, -1000, 0)
+    local rayResult = workspace:Raycast(rayOrigin, rayDirection, rayParams)
     
     if rayResult then
-        RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
+        local hitPosition = rayResult.Position
+        RootPart.CFrame = CFrame.new(hitPosition.X, hitPosition.Y + 3, hitPosition.Z)
+    else
+        -- Si aucun sol n'est trouvé, descendre progressivement
+        local fallConnection
+        fallConnection = RunService.Heartbeat:Connect(function()
+            local rayResult = workspace:Raycast(RootPart.Position, Vector3.new(0, -10, 0), rayParams)
+            if rayResult then
+                RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
+                fallConnection:Disconnect()
+            else
+                RootPart.Velocity = Vector3.new(RootPart.Velocity.X, -50, RootPart.Velocity.Z)
+            end
+        end)
     end
     
     -- Nettoyage
@@ -221,16 +232,8 @@ end
 MainButton.MouseButton1Click:Connect(ToggleWindow)
 CloseButton.MouseButton1Click:Connect(ToggleWindow)
 
-ButtonContainer.SKY.MouseButton1Click:Connect(StartInfiniteFlight)
+ButtonContainer.STEAL.MouseButton1Click:Connect(StartInfiniteFlight)
 ButtonContainer.DOWN.MouseButton1Click:Connect(StopFlight)
-ButtonContainer.DISCORD.MouseButton1Click:Connect(function()
-    setclipboard("https://discord.gg/ZVX8GNMNaD")
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "INFINITY | HUB",
-        Text = "Lien Discord copié !",
-        Duration = 2
-    })
-end)
 
 -- Sécurité
 Character:GetPropertyChangedSignal("Parent"):Connect(function()
@@ -242,4 +245,4 @@ Character:GetPropertyChangedSignal("Parent"):Connect(function()
     end
 end)
 
-print("✅ INFINITY HUB - SYSTÈME DE VOL INFINI ACTIVÉ")
+print("✅ STEAL ARBIX HUB - SYSTÈME DE VOL INFINI ACTIVÉ")
