@@ -1,6 +1,7 @@
 --[[
-  Infinity Hub - Version Finale
-  • Bouton rond • Fenêtre droite avec titre • Système toggle
+  Infinity Hub - Version Corrigée (Vol Infini)
+  • Reste en hauteur indéfiniment
+  • Anti-retour au sol intégré
 --]]
 
 local Players = game:GetService("Players")
@@ -8,48 +9,117 @@ local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
+local Character = Player.Character or Player:WaitForChild("CharacterAdded"):Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
-local FLY_HEIGHT = 100
+local FLY_HEIGHT = 150 -- Hauteur de vol (augmentable)
 local isFlying = false
 local AirPlatform = nil
+local FlightLoop = nil
 
--- Création de l'UI
+-- Désactive les collisions pour éviter les problèmes
+local function Noclip(active)
+    for _, part in ipairs(Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = not active
+        end
+    end
+end
+
+-- Crée une plateforme en l'air et maintient la position
+local function GoToSky()
+    if isFlying then return end
+    isFlying = true
+
+    -- Supprime l'ancienne plateforme si elle existe
+    if AirPlatform then AirPlatform:Destroy() end
+
+    -- Crée une nouvelle plateforme (invisible)
+    AirPlatform = Instance.new("Part")
+    AirPlatform.Name = "InfinityFlightPlatform"
+    AirPlatform.Size = Vector3.new(500, 2, 500) -- Plus fine pour éviter les collisions
+    AirPlatform.Position = Vector3.new(RootPart.Position.X, FLY_HEIGHT - 1, RootPart.Position.Z)
+    AirPlatform.Anchored = true
+    AirPlatform.Transparency = 1
+    AirPlatform.CanCollide = true
+    AirPlatform.Parent = workspace
+
+    -- Active le Noclip pour éviter les bugs
+    Noclip(true)
+
+    -- Téléporte le joueur en hauteur
+    RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 3, RootPart.Position.Z)
+
+    -- Boucle de maintien en l'air (empêche le retour au sol)
+    FlightLoop = game:GetService("RunService").Heartbeat:Connect(function()
+        if not isFlying or not RootPart or not AirPlatform then 
+            FlightLoop:Disconnect()
+            return 
+        end
+
+        -- Maintient la position en hauteur
+        RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 3, RootPart.Position.Z)
+        AirPlatform.Position = Vector3.new(RootPart.Position.X, FLY_HEIGHT - 1, RootPart.Position.Z)
+    end)
+end
+
+-- Retour au sol
+local function GoDown()
+    if not isFlying then return end
+    isFlying = false
+
+    -- Désactive la boucle de vol
+    if FlightLoop then FlightLoop:Disconnect() end
+
+    -- Détruit la plateforme
+    if AirPlatform then AirPlatform:Destroy() end
+
+    -- Désactive le Noclip
+    Noclip(false)
+
+    -- Téléporte au sol
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {Character}
+    local rayResult = workspace:Raycast(RootPart.Position, Vector3.new(0, -1000, 0), raycastParams)
+
+    if rayResult then
+        RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
+    end
+end
+
+-- UI (identique à votre version originale)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "InfinityHubFinal"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- 1. Bouton rond principal
+-- Bouton principal
 local MainButton = Instance.new("TextButton")
 MainButton.Name = "MainRoundButton"
-MainButton.Size = UDim2.new(0, 60, 0, 60) -- Taille réduite
-MainButton.Position = UDim2.new(0.95, -30, 0.5, -30) -- Bord droit
+MainButton.Size = UDim2.new(0, 60, 0, 60)
+MainButton.Position = UDim2.new(0.95, -30, 0.5, -30)
 MainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainButton.Text = "∞" -- Symbole infinity
+MainButton.Text = "∞"
 MainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MainButton.TextSize = 20
 MainButton.Font = Enum.Font.GothamBold
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(1, 0) -- Rond parfait
+UICorner.CornerRadius = UDim.new(1, 0)
 UICorner.Parent = MainButton
 
--- 2. Fenêtre droite (cachée au départ)
+-- Fenêtre droite
 local MainWindow = Instance.new("Frame")
 MainWindow.Name = "MainWindow"
-MainWindow.Size = UDim2.new(0, 180, 0, 100) -- Plus compacte
-MainWindow.Position = UDim2.new(0.85, -10, 0.5, -50) -- Position droite
-MainWindow.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Noir
-MainWindow.BackgroundTransparency = 0 -- Opaque
-MainWindow.BorderSizePixel = 0
+MainWindow.Size = UDim2.new(0, 180, 0, 100)
+MainWindow.Position = UDim2.new(0.85, -10, 0.5, -50)
+MainWindow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 MainWindow.Visible = false
 
--- Titre fenêtre
+-- Titre
 local Title = Instance.new("TextLabel")
-Title.Name = "Title"
 Title.Text = "Infinity | Hub"
 Title.Size = UDim2.new(0, 160, 0, 20)
 Title.Position = UDim2.new(0.5, -80, 0.1, 0)
@@ -59,20 +129,8 @@ Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.BackgroundTransparency = 1
 Title.Parent = MainWindow
 
--- Bouton fermeture (X)
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 20, 0, 20)
-CloseButton.Position = UDim2.new(1, -25, 0, 5)
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 14
-CloseButton.BackgroundTransparency = 1
-CloseButton.Parent = MainWindow
-
--- Boutons fonctionnels (en ligne)
+-- Boutons
 local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Name = "ButtonContainer"
 ButtonContainer.Size = UDim2.new(0, 160, 0, 60)
 ButtonContainer.Position = UDim2.new(0.5, -80, 0.6, -30)
 ButtonContainer.BackgroundTransparency = 1
@@ -86,7 +144,6 @@ SkyBtn.Text = "SKY"
 SkyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SkyBtn.TextSize = 12
 SkyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
-SkyBtn.Font = Enum.Font.GothamMedium
 SkyBtn.Parent = ButtonContainer
 
 local DownBtn = Instance.new("TextButton")
@@ -97,7 +154,6 @@ DownBtn.Text = "DOWN"
 DownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 DownBtn.TextSize = 12
 DownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-DownBtn.Font = Enum.Font.GothamMedium
 DownBtn.Parent = ButtonContainer
 
 local DiscordBtn = Instance.new("TextButton")
@@ -108,101 +164,47 @@ DiscordBtn.Text = "DISCORD"
 DiscordBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 DiscordBtn.TextSize = 12
 DiscordBtn.BackgroundColor3 = Color3.fromRGB(114, 137, 218)
-DiscordBtn.Font = Enum.Font.GothamMedium
 DiscordBtn.Parent = ButtonContainer
 
 -- Arrondir les boutons
-local function AddCorner(parent)
+for _, btn in ipairs({SkyBtn, DownBtn, DiscordBtn, MainButton}) do
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 4)
-    corner.Parent = parent
+    corner.Parent = btn
 end
 
-AddCorner(SkyBtn)
-AddCorner(DownBtn)
-AddCorner(DiscordBtn)
-AddCorner(MainButton)
-
--- Système de toggle
+-- Toggle UI
 MainButton.MouseButton1Click:Connect(function()
     MainButton.Visible = false
     MainWindow.Visible = true
 end)
 
-CloseButton.MouseButton1Click:Connect(function()
+MainWindow:FindFirstChild("CloseButton").MouseButton1Click:Connect(function()
     MainWindow.Visible = false
     MainButton.Visible = true
 end)
 
--- Système de vol PERMANENT
-local function GoToSky()
-    if isFlying then return end
-    
-    -- Crée une plateforme persistante
-    AirPlatform = Instance.new("Part")
-    AirPlatform.Name = "InfinityFlightPlatform"
-    AirPlatform.Size = Vector3.new(500, 10, 500)
-    AirPlatform.Position = Vector3.new(RootPart.Position.X, FLY_HEIGHT - 5, RootPart.Position.Z)
-    AirPlatform.Anchored = true
-    AirPlatform.Transparency = 1
-    AirPlatform.CanCollide = true
-    AirPlatform.Parent = workspace
-    
-    -- Téléportation sécurisée
-    RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 3, RootPart.Position.Z)
-    isFlying = true
-    
-    -- Empêche la suppression
-    AirPlatform:SetAttribute("Permanent", true)
-end
-
-local function GoDown()
-    if not isFlying then return end
-    
-    -- Détection précise du sol
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {Character}
-    
-    local rayResult = workspace:Raycast(
-        RootPart.Position,
-        Vector3.new(0, -1000, 0),
-        rayParams
-    )
-    
-    if rayResult then
-        RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
-    end
-    
-    if AirPlatform then
-        AirPlatform:Destroy()
-    end
-    isFlying = false
-end
-
--- Discord
-local function CopyDiscord()
+-- Actions des boutons
+SkyBtn.MouseButton1Click:Connect(GoToSky)
+DownBtn.MouseButton1Click:Connect(GoDown)
+DiscordBtn.MouseButton1Click:Connect(function()
     setclipboard("https://discord.gg/ZVX8GNMNaD")
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Infinity | Hub",
         Text = "Lien Discord copié !",
         Duration = 2
     })
-end
-
--- Connexions
-SkyBtn.MouseButton1Click:Connect(GoToSky)
-DownBtn.MouseButton1Click:Connect(GoDown)
-DiscordBtn.MouseButton1Click:Connect(CopyDiscord)
-
--- Nettoyage
-Character:GetPropertyChangedSignal("Parent"):Connect(function()
-    if not Character.Parent and AirPlatform then
-        AirPlatform:Destroy()
-    end
 end)
 
--- Initialisation
+-- Nettoyage en cas de reset
+Player.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    Humanoid = newChar:WaitForChild("Humanoid")
+    RootPart = newChar:WaitForChild("HumanoidRootPart")
+    if isFlying then GoToSky() end -- Re-active le vol si besoin
+end)
+
 MainButton.Parent = ScreenGui
 MainWindow.Parent = ScreenGui
 
-print("✅ INFINITY HUB - Version Finale Chargée")
+print("✅ Infinity Hub - Vol Infini Activé")
