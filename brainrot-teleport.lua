@@ -1,7 +1,8 @@
 --[[
-  Infinity Hub - Version Finale Améliorée
-  • Problème de téléportation au sol résolu
-  • Plateforme permanente tant que l'utilisateur ne clique pas sur DOWN
+  Infinity Hub - Version Complète Fonctionnelle
+  • Bouton rond • Fenêtre droite • Système toggle
+  • Téléportation ciel/sol fonctionnelle
+  • Plateforme persistante
 --]]
 
 local Players = game:GetService("Players")
@@ -13,7 +14,7 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
-local FLY_HEIGHT = 150 -- Hauteur augmentée à 150m comme demandé
+local FLY_HEIGHT = 150
 local isFlying = false
 local AirPlatform = nil
 
@@ -135,11 +136,11 @@ CloseButton.MouseButton1Click:Connect(function()
     MainButton.Visible = true
 end)
 
--- Système de vol PERMANENT amélioré
+-- Système de vol amélioré
 local function GoToSky()
     if isFlying then return end
     
-    -- Crée une plateforme persistante et légèrement visible
+    -- Crée une plateforme persistante
     AirPlatform = Instance.new("Part")
     AirPlatform.Name = "InfinityFlightPlatform"
     AirPlatform.Size = Vector3.new(500, 5, 500)
@@ -151,47 +152,34 @@ local function GoToSky()
     AirPlatform.CanCollide = true
     AirPlatform.Parent = workspace
     
-    -- Téléportation sécurisée avec vérification
-    local success, err = pcall(function()
-        RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 5, RootPart.Position.Z)
-    end)
-    
-    if not success then
-        warn("Erreur de téléportation: "..err)
-        AirPlatform:Destroy()
-        return
-    end
-    
+    -- Téléportation sécurisée
+    RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 5, RootPart.Position.Z)
     isFlying = true
     
-    -- Système de maintien en l'air permanent
-    local connection
-    connection = game:GetService("RunService").Heartbeat:Connect(function()
-        if not isFlying or not Character or not Character.Parent then
-            connection:Disconnect()
-            return
-        end
-        
-        -- Vérifie si le joueur est trop bas et le remonte si nécessaire
-        if RootPart.Position.Y < FLY_HEIGHT then
-            RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 5, RootPart.Position.Z)
-        end
-    end)
+    -- Notification
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Infinity Hub",
+        Text = "Vous êtes monté à 150m!",
+        Duration = 2
+    })
 end
 
 local function GoDown()
     if not isFlying then return end
     
-    -- Détection précise du sol avec plusieurs raycasts pour plus de fiabilité
+    -- Trouve une position valide au sol
+    local rayOrigin = RootPart.Position
+    rayOrigin = Vector3.new(rayOrigin.X, 1000, rayOrigin.Z) -- Commence de très haut
+    
     local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {Character}
+    rayParams.FilterDescendantsInstances = {Character, AirPlatform}
     rayParams.IgnoreWater = true
     
     local foundPosition = nil
-    for i = 1, 5 do  -- Plusieurs tentatives
+    for i = 1, 5 do
         local rayResult = workspace:Raycast(
-            RootPart.Position + Vector3.new(math.random(-10,10), 0, math.random(-10,10)),
-            Vector3.new(0, -1000, 0),
+            rayOrigin, 
+            Vector3.new(0, -2000, 0), -- Rayon vers le bas très long
             rayParams
         )
         
@@ -199,46 +187,55 @@ local function GoDown()
             foundPosition = rayResult.Position
             break
         end
-        wait(0.1)
+        rayOrigin = Vector3.new(rayOrigin.X + math.random(-20,20), rayOrigin.Y, rayOrigin.Z + math.random(-20,20))
     end
     
-    -- Position de secours si aucun sol n'est trouvé
+    -- Position par défaut si aucun sol n'est trouvé
     foundPosition = foundPosition or Vector3.new(RootPart.Position.X, 5, RootPart.Position.Z)
     
+    -- Téléportation au sol + 3 unités
     RootPart.CFrame = CFrame.new(foundPosition + Vector3.new(0, 3, 0))
     
+    -- Supprime la plateforme
     if AirPlatform then
         AirPlatform:Destroy()
         AirPlatform = nil
     end
+    
     isFlying = false
-end
-
--- Discord
-local function CopyDiscord()
-    setclipboard("https://discord.gg/ZVX8GNMNaD")
+    
+    -- Notification
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Infinity | Hub",
-        Text = "Lien Discord copié !",
-        Duration = 2,
-        Icon = "rbxassetid://11240648136" -- Icône Discord
+        Title = "Infinity Hub",
+        Text = "Vous êtes descendu au sol",
+        Duration = 2
     })
 end
 
--- Connexions
+-- Fonction Discord
+local function CopyDiscord()
+    setclipboard("https://discord.gg/ZVX8GNMNaD")
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Infinity Hub",
+        Text = "Lien Discord copié!",
+        Duration = 2,
+        Icon = "rbxassetid://11240648136"
+    })
+end
+
+-- Connexions des boutons
 SkyBtn.MouseButton1Click:Connect(GoToSky)
 DownBtn.MouseButton1Click:Connect(GoDown)
 DiscordBtn.MouseButton1Click:Connect(CopyDiscord)
 
--- Nettoyage amélioré
+-- Gestion du respawn
 Player.CharacterAdded:Connect(function(newChar)
     Character = newChar
     RootPart = newChar:WaitForChild("HumanoidRootPart")
     
     if isFlying then
-        -- Recrée la plateforme si le personnage respawn
-        wait(1) -- Attendre que le personnage soit complètement chargé
-        GoToSky()
+        wait(1) -- Attendre que le personnage soit chargé
+        GoToSky() -- Recréer la plateforme
     end
 end)
 
@@ -246,4 +243,4 @@ end)
 MainButton.Parent = ScreenGui
 MainWindow.Parent = ScreenGui
 
-print("✅ INFINITY HUB - Version Finale Améliorée Chargée")
+print("✅ INFINITY HUB - Version Complète Chargée")
