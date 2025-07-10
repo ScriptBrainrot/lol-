@@ -1,13 +1,11 @@
 --[[
-  Infinity Hub - Édition Complète
-  • Bouton rond ∞ • Interface coulissante • Vol infini
-  • Descente précise • Discord • Design noir opaque
+  Infinity Hub - Skywalk Illimité
+  Ajout : bouton Discord, bouton rond Wanted Scripts, X pour fermer
 --]]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
@@ -17,232 +15,143 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 -- Configuration
 local FLY_HEIGHT = 150
 local isFlying = false
-local platformParts = {}
-local currentVelocity
+local AirPlatform = nil
 
--- Création de l'UI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "InfinityHubComplete"
-ScreenGui.Parent = game.CoreGui
+-- Créer le sol aérien
+local function CreateSkyPlatform()
+    if AirPlatform then return end
+    AirPlatform = Instance.new("Part")
+    AirPlatform.Name = "PermanentSkyPlatform"
+    AirPlatform.Size = Vector3.new(10000, 5, 10000)
+    AirPlatform.Position = Vector3.new(0, FLY_HEIGHT, 0)
+    AirPlatform.Anchored = true
+    AirPlatform.Transparency = 1
+    AirPlatform.CanCollide = true
+    AirPlatform.CollisionGroup = "SkyPlatform"
+    AirPlatform.Parent = Workspace
+    AirPlatform:SetAttribute("Permanent", true)
+end
+
+-- GUI principale
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "InfinityHubGUI"
 ScreenGui.ResetOnSpawn = false
 
--- 1. Bouton rond principal
-local MainButton = Instance.new("TextButton")
-MainButton.Name = "MainButton"
-MainButton.Size = UDim2.new(0, 60, 0, 60)
-MainButton.Position = UDim2.new(0.95, -30, 0.5, -30)
-MainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainButton.Text = "∞"
-MainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-MainButton.TextSize = 24
-MainButton.Font = Enum.Font.GothamBold
-MainButton.ZIndex = 2
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 180, 0, 160)
+Frame.Position = UDim2.new(0.05, 0, 0.5, -80)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(1, 0)
-UICorner.Parent = MainButton
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
--- 2. Fenêtre droite (avec animation)
-local MainWindow = Instance.new("Frame")
-MainWindow.Name = "MainWindow"
-MainWindow.Size = UDim2.new(0, 180, 0, 120)
-MainWindow.Position = UDim2.new(1, 10, 0.5, -60) -- Hors écran au départ
-MainWindow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-MainWindow.BackgroundTransparency = 0.3
-MainWindow.BorderSizePixel = 0
-MainWindow.ClipsDescendants = true
-
--- Titre
-local Title = Instance.new("TextLabel")
-Title.Text = "STEAL | ARBIX HUB"
-Title.Size = UDim2.new(0, 160, 0, 20)
-Title.Position = UDim2.new(0.5, -80, 0.1, 0)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0.2, 0)
+Title.Text = "Infinity Hub"
+Title.TextColor3 = Color3.fromRGB(0, 255, 255)
 Title.BackgroundTransparency = 1
-Title.Parent = MainWindow
+Title.Font = Enum.Font.Code
+Title.TextScaled = true
 
--- Bouton fermeture
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 20, 0, 20)
-CloseButton.Position = UDim2.new(1, -25, 0, 5)
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 14
-CloseButton.BackgroundTransparency = 1
-CloseButton.Parent = MainWindow
+local Icon = Instance.new("ImageLabel", Frame)
+Icon.Size = UDim2.new(0, 36, 0, 36)
+Icon.Position = UDim2.new(0, 10, 0, 5)
+Icon.BackgroundTransparency = 1
+Icon.Image = "rbxassetid://17497428354" -- Image ArBix
 
--- Boutons fonctionnels (optimisés)
-local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Size = UDim2.new(0, 160, 0, 70)
-ButtonContainer.Position = UDim2.new(0.5, -80, 0.5, -35)
-ButtonContainer.BackgroundTransparency = 1
-ButtonContainer.Parent = MainWindow
+-- Bouton Start/Down
+local Button = Instance.new("TextButton", Frame)
+Button.Size = UDim2.new(0.75, 0, 0.25, 0)
+Button.Position = UDim2.new(0.125, 0, 0.45, 0)
+Button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+Button.TextColor3 = Color3.new(1, 1, 1)
+Button.Font = Enum.Font.Code
+Button.TextScaled = true
+Button.Text = "Start"
+Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 6)
 
-local buttons = {
-    {Name = "STEAL", Color = Color3.fromRGB(0, 100, 255), Y = 0},
-    {Name = "DOWN", Color = Color3.fromRGB(255, 50, 50), Y = 0.35}
-}
+-- Bouton Discord
+local DiscordBtn = Instance.new("TextButton", Frame)
+DiscordBtn.Size = UDim2.new(0.75, 0, 0.2, 0)
+DiscordBtn.Position = UDim2.new(0.125, 0, 0.75, 0)
+DiscordBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+DiscordBtn.TextColor3 = Color3.new(1, 1, 1)
+DiscordBtn.Font = Enum.Font.Code
+DiscordBtn.TextScaled = true
+DiscordBtn.Text = "Rejoindre Discord"
+Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 6)
 
-for _, btn in ipairs(buttons) do
-    local button = Instance.new("TextButton")
-    button.Name = btn.Name
-    button.Size = UDim2.new(1, 0, 0.45, -5)
-    button.Position = UDim2.new(0, 0, btn.Y, 0)
-    button.Text = btn.Name
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 12
-    button.BackgroundColor3 = btn.Color
-    button.Font = Enum.Font.GothamMedium
-    button.Parent = ButtonContainer
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 4)
-    corner.Parent = button
-end
+-- Fermeture avec X
+local CloseBtn = Instance.new("TextButton", Frame)
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Position = UDim2.new(1, -28, 0, 4)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+CloseBtn.Text = "X"
+CloseBtn.Font = Enum.Font.Code
+CloseBtn.TextScaled = true
+CloseBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
 
-MainWindow.Parent = ScreenGui
-MainButton.Parent = ScreenGui
+-- Bouton flottant Wanted Scripts
+local FloatBtn = Instance.new("ImageButton", ScreenGui)
+FloatBtn.Size = UDim2.new(0, 60, 0, 60)
+FloatBtn.Position = UDim2.new(0.85, 0, 0.85, 0)
+FloatBtn.Image = "rbxassetid://17497432600" -- Image Wanted Scripts
+FloatBtn.BackgroundTransparency = 1
+FloatBtn.Visible = false
+FloatBtn.Active = true
+FloatBtn.Draggable = true
 
--- Animation fenêtre
-local function ToggleWindow()
-    if MainWindow.Position == UDim2.new(0.85, -10, 0.5, -60) then
-        -- Ferme la fenêtre
-        for i = 1, 10 do
-            MainWindow.Position = UDim2.new(0.85 + (i * 0.01), -10 + (i * 1), 0.5, -60)
-            task.wait(0.01)
-        end
-        MainButton.Visible = true
+-- Actions
+Button.MouseButton1Click:Connect(function()
+    if not isFlying then
+        CreateSkyPlatform()
+        isFlying = true
+        local pos = RootPart.Position
+        RootPart.CFrame = CFrame.new(pos.X, FLY_HEIGHT + 3, pos.Z)
+        Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        Button.Text = "Down"
     else
-        -- Ouvre la fenêtre
-        MainButton.Visible = false
-        MainWindow.Position = UDim2.new(1, 10, 0.5, -60)
-        for i = 1, 10 do
-            MainWindow.Position = UDim2.new(1 - (i * 0.015), 10 - (i * 2), 0.5, -60)
-            task.wait(0.01)
+        local rayOrigin = Vector3.new(RootPart.Position.X, FLY_HEIGHT - 2, RootPart.Position.Z)
+        local rayParams = RaycastParams.new()
+        rayParams.FilterDescendantsInstances = {Character}
+        rayParams.CollisionGroup = "Default"
+        local rayResult = Workspace:Raycast(rayOrigin, Vector3.new(0, -1000, 0), rayParams)
+        if rayResult then
+            RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
         end
-    end
-end
-
--- Système de vol PERMANENT
-local flightConnection
-
-local function CreateFlightPlatform()
-    -- Nettoie l'ancien sol
-    for _, part in ipairs(platformParts) do
-        part:Destroy()
-    end
-    platformParts = {}
-
-    -- Crée un sol dynamique (5x5 parts)
-    for x = -2, 2 do
-        for z = -2, 2 do
-            local part = Instance.new("Part")
-            part.Size = Vector3.new(100, 5, 100)
-            part.Position = Vector3.new(
-                RootPart.Position.X + (x * 90),
-                FLY_HEIGHT - 3,
-                RootPart.Position.Z + (z * 90)
-            )
-            part.Anchored = true
-            part.Transparency = 1
-            part.CanCollide = true
-            part.Parent = workspace
-            table.insert(platformParts, part)
-        end
-    end
-end
-
-local function StartInfiniteFlight()
-    isFlying = true
-    CreateFlightPlatform()
-    
-    -- Téléportation initiale
-    RootPart.CFrame = CFrame.new(RootPart.Position.X, FLY_HEIGHT + 3, RootPart.Position.Z)
-    
-    -- Anti-chute continu
-    if flightConnection then flightConnection:Disconnect() end
-    
-    flightConnection = RunService.Heartbeat:Connect(function()
-        if not isFlying then 
-            flightConnection:Disconnect()
-            return 
-        end
-        
-        -- Maintien en l'air
-        if RootPart.Position.Y < FLY_HEIGHT + 2 then
-            RootPart.Velocity = Vector3.new(RootPart.Velocity.X, 15, RootPart.Velocity.Z)
-        else
-            RootPart.Velocity = Vector3.new(RootPart.Velocity.X, 0, RootPart.Velocity.Z)
-        end
-        
-        -- Génération dynamique du sol
-        if #platformParts > 0 then
-            local farthestPart = platformParts[1]
-            local maxDist = (farthestPart.Position - RootPart.Position).Magnitude
-            
-            if maxDist > 120 then
-                CreateFlightPlatform()
-            end
-        end
-    end)
-end
-
-local function StopFlight()
-    if not isFlying then return end
-    
-    -- Détection précise du sol
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {Character}
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    
-    local rayOrigin = RootPart.Position
-    local rayDirection = Vector3.new(0, -1000, 0)
-    local rayResult = workspace:Raycast(rayOrigin, rayDirection, rayParams)
-    
-    if rayResult then
-        local hitPosition = rayResult.Position
-        RootPart.CFrame = CFrame.new(hitPosition.X, hitPosition.Y + 3, hitPosition.Z)
-    else
-        -- Si aucun sol n'est trouvé, descendre progressivement
-        local fallConnection
-        fallConnection = RunService.Heartbeat:Connect(function()
-            local rayResult = workspace:Raycast(RootPart.Position, Vector3.new(0, -10, 0), rayParams)
-            if rayResult then
-                RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
-                fallConnection:Disconnect()
-            else
-                RootPart.Velocity = Vector3.new(RootPart.Velocity.X, -50, RootPart.Velocity.Z)
-            end
-        end)
-    end
-    
-    -- Nettoyage
-    if flightConnection then flightConnection:Disconnect() end
-    for _, part in ipairs(platformParts) do
-        part:Destroy()
-    end
-    platformParts = {}
-    isFlying = false
-end
-
--- Contrôles
-MainButton.MouseButton1Click:Connect(ToggleWindow)
-CloseButton.MouseButton1Click:Connect(ToggleWindow)
-
-ButtonContainer.STEAL.MouseButton1Click:Connect(StartInfiniteFlight)
-ButtonContainer.DOWN.MouseButton1Click:Connect(StopFlight)
-
--- Sécurité
-Character:GetPropertyChangedSignal("Parent"):Connect(function()
-    if not Character.Parent then
-        if flightConnection then flightConnection:Disconnect() end
-        for _, part in ipairs(platformParts) do
-            part:Destroy()
-        end
+        isFlying = false
+        Button.Text = "Start"
     end
 end)
 
-print("✅ STEAL ARBIX HUB - SYSTÈME DE VOL INFINI ACTIVÉ")
+DiscordBtn.MouseButton1Click:Connect(function()
+    setclipboard("https://discord.gg/ZVX8GNMNaD")
+    StarterGui:SetCore("SendNotification", {
+        Title = "Infinity Hub",
+        Text = "Lien Discord copié !",
+        Duration = 5
+    })
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    Frame.Visible = false
+    FloatBtn.Visible = true
+end)
+
+FloatBtn.MouseButton1Click:Connect(function()
+    Frame.Visible = true
+    FloatBtn.Visible = false
+end)
+
+-- Maintien du sol
+workspace.ChildAdded:Connect(function(child)
+    if child.Name == "PermanentSkyPlatform" then
+        child:SetAttribute("Permanent", true)
+    end
+end)
+
+print("✅ Infinity Hub chargé avec boutons Discord & Wanted Scripts.")
