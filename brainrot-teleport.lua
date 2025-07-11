@@ -1,157 +1,140 @@
---[[
-  Infinity Hub - Skywalk Illimité
-  Ajout : bouton Discord, bouton rond Wanted Scripts, X pour fermer
---]]
-
+--// Services
 local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
-local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
-local Player = Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local RootPart = Character:WaitForChild("HumanoidRootPart")
-
--- Configuration
-local FLY_HEIGHT = 150
-local isFlying = false
-local AirPlatform = nil
-
--- Créer le sol aérien
-local function CreateSkyPlatform()
-    if AirPlatform then return end
-    AirPlatform = Instance.new("Part")
-    AirPlatform.Name = "PermanentSkyPlatform"
-    AirPlatform.Size = Vector3.new(10000, 5, 10000)
-    AirPlatform.Position = Vector3.new(0, FLY_HEIGHT, 0)
-    AirPlatform.Anchored = true
-    AirPlatform.Transparency = 1
-    AirPlatform.CanCollide = true
-    AirPlatform.CollisionGroup = "SkyPlatform"
-    AirPlatform.Parent = Workspace
-    AirPlatform:SetAttribute("Permanent", true)
-end
-
--- GUI principale
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "InfinityHubGUI"
+--// UI Setup
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "ArbixAutoSteal"
 ScreenGui.ResetOnSpawn = false
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 180, 0, 160)
-Frame.Position = UDim2.new(0.05, 0, 0.5, -80)
-Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 220, 0, 100)
+Frame.Position = UDim2.new(0.7, 0, 0.2, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Frame.BorderSizePixel = 0
+Frame.Name = "MainFrame"
 Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
+Frame.Draggable = true -- rend le cadre déplaçable
 
-Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
+-- // DRAG SUPPORT (mobile + PC)
+local dragging = false
+local dragInput, dragStart, startPos
 
+local function updateDrag(input)
+	if dragging then
+		local delta = input.Position - dragStart
+		Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end
+
+Frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = Frame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+Frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput then
+		updateDrag(input)
+	end
+end)
+
+--// Title
 local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1, 0, 0.2, 0)
-Title.Text = "Infinity Hub"
-Title.TextColor3 = Color3.fromRGB(0, 255, 255)
+Title.Size = UDim2.new(1, 0, 0.4, 0)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.Text = "⚡ Arbix Hub | Auto Steal"
 Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.Code
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.SourceSansBold
 Title.TextScaled = true
 
-local Icon = Instance.new("ImageLabel", Frame)
-Icon.Size = UDim2.new(0, 36, 0, 36)
-Icon.Position = UDim2.new(0, 10, 0, 5)
-Icon.BackgroundTransparency = 1
-Icon.Image = "rbxassetid://17497428354" -- Image ArBix
+--// Steal Button
+local StealButton = Instance.new("TextButton", Frame)
+StealButton.Size = UDim2.new(0.9, 0, 0.45, 0)
+StealButton.Position = UDim2.new(0.05, 0, 0.5, 0)
+StealButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+StealButton.Text = "⭐ Start Auto Steal"
+StealButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+StealButton.Font = Enum.Font.SourceSansBold
+StealButton.TextScaled = true
+StealButton.Name = "StealButton"
+StealButton.BorderSizePixel = 0
 
--- Bouton Start/Down
-local Button = Instance.new("TextButton", Frame)
-Button.Size = UDim2.new(0.75, 0, 0.25, 0)
-Button.Position = UDim2.new(0.125, 0, 0.45, 0)
-Button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-Button.TextColor3 = Color3.new(1, 1, 1)
-Button.Font = Enum.Font.Code
-Button.TextScaled = true
-Button.Text = "Start"
-Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 6)
+--// Notify
+local function NotifySuccess()
+    StealButton.Text = "✅ Success!"
+    wait(2)
+    StealButton.Text = "⭐ Start Auto Steal"
+end
 
--- Bouton Discord
-local DiscordBtn = Instance.new("TextButton", Frame)
-DiscordBtn.Size = UDim2.new(0.75, 0, 0.2, 0)
-DiscordBtn.Position = UDim2.new(0.125, 0, 0.75, 0)
-DiscordBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-DiscordBtn.TextColor3 = Color3.new(1, 1, 1)
-DiscordBtn.Font = Enum.Font.Code
-DiscordBtn.TextScaled = true
-DiscordBtn.Text = "Rejoindre Discord"
-Instance.new("UICorner", DiscordBtn).CornerRadius = UDim.new(0, 6)
-
--- Fermeture avec X
-local CloseBtn = Instance.new("TextButton", Frame)
-CloseBtn.Size = UDim2.new(0, 24, 0, 24)
-CloseBtn.Position = UDim2.new(1, -28, 0, 4)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-CloseBtn.Text = "X"
-CloseBtn.Font = Enum.Font.Code
-CloseBtn.TextScaled = true
-CloseBtn.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
-
--- Bouton flottant Wanted Scripts
-local FloatBtn = Instance.new("ImageButton", ScreenGui)
-FloatBtn.Size = UDim2.new(0, 60, 0, 60)
-FloatBtn.Position = UDim2.new(0.85, 0, 0.85, 0)
-FloatBtn.Image = "rbxassetid://17497432600" -- Image Wanted Scripts
-FloatBtn.BackgroundTransparency = 1
-FloatBtn.Visible = false
-FloatBtn.Active = true
-FloatBtn.Draggable = true
-
--- Actions
-Button.MouseButton1Click:Connect(function()
-    if not isFlying then
-        CreateSkyPlatform()
-        isFlying = true
-        local pos = RootPart.Position
-        RootPart.CFrame = CFrame.new(pos.X, FLY_HEIGHT + 3, pos.Z)
-        Humanoid:ChangeState(Enum.HumanoidStateType.Running)
-        Button.Text = "Down"
-    else
-        local rayOrigin = Vector3.new(RootPart.Position.X, FLY_HEIGHT - 2, RootPart.Position.Z)
-        local rayParams = RaycastParams.new()
-        rayParams.FilterDescendantsInstances = {Character}
-        rayParams.CollisionGroup = "Default"
-        local rayResult = Workspace:Raycast(rayOrigin, Vector3.new(0, -1000, 0), rayParams)
-        if rayResult then
-            RootPart.CFrame = CFrame.new(rayResult.Position + Vector3.new(0, 3, 0))
+--// Get Base Button
+local function GetCollectZone()
+    for _, model in pairs(Workspace:GetChildren()) do
+        if model:IsA("Model") and model:FindFirstChild("Owner") and model.Owner:IsA("StringValue") then
+            if model.Owner.Value == LocalPlayer.Name then
+                for _, part in pairs(model:GetDescendants()) do
+                    if part:IsA("BasePart") and string.find(string.lower(part.Name), "collect") then
+                        return part
+                    end
+                end
+            end
         end
-        isFlying = false
-        Button.Text = "Start"
     end
-end)
+    return nil
+end
 
-DiscordBtn.MouseButton1Click:Connect(function()
-    setclipboard("https://discord.gg/ZVX8GNMNaD")
-    StarterGui:SetCore("SendNotification", {
-        Title = "Infinity Hub",
-        Text = "Lien Discord copié !",
-        Duration = 5
-    })
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    Frame.Visible = false
-    FloatBtn.Visible = true
-end)
-
-FloatBtn.MouseButton1Click:Connect(function()
-    Frame.Visible = true
-    FloatBtn.Visible = false
-end)
-
--- Maintien du sol
-workspace.ChildAdded:Connect(function(child)
-    if child.Name == "PermanentSkyPlatform" then
-        child:SetAttribute("Permanent", true)
+--// Teleport to Zone
+local function TeleportToCollectZone()
+    local zone = GetCollectZone()
+    if zone and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character:MoveTo(zone.Position + Vector3.new(0, 3, 0))
     end
-end)
+end
 
-print("✅ Infinity Hub chargé avec boutons Discord & Wanted Scripts.")
+--// Auto Steal Logic
+local function AutoSteal()
+    StealButton.Text = "⏳ Stealing..."
+    local success = false
+
+    for i = 1, 30 do
+        TeleportToCollectZone()
+        wait(0.2)
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local pos = char.HumanoidRootPart.Position
+            if pos and Workspace:FindFirstChild(LocalPlayer.Name .. "'s Base") == nil then
+                success = true
+                break
+            end
+        end
+    end
+
+    if success then
+        NotifySuccess()
+    else
+        StealButton.Text = "⭐ Start Auto Steal"
+    end
+end
+
+--// Button Click
+StealButton.MouseButton1Click:Connect(function()
+    AutoSteal()
+end)
